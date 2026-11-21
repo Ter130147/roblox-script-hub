@@ -36,7 +36,7 @@ function UI.init(Config, hubTitle)
     headerLabel.Size = UDim2.new(1, -24, 0, 36)
     headerLabel.Position = UDim2.fromOffset(14, 8)
     headerLabel.BackgroundTransparency = 1
-    headerLabel.Text = titleText .. "  •  Net a Fish"
+    headerLabel.Text = titleText .. " - Net a Fish"
     headerLabel.TextColor3 = Color3.fromRGB(245, 245, 250)
     headerLabel.TextXAlignment = Enum.TextXAlignment.Left
     headerLabel.Font = Enum.Font.GothamBold
@@ -67,7 +67,7 @@ function UI.init(Config, hubTitle)
         end
     end)
 
-    print("[UI] โหลดหน้าต่างเรียบร้อย")
+    print("[UI] Loaded")
 end
 
 return UI
