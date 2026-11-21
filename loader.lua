@@ -45,3 +45,5 @@ local function bootstrap()
 end
 
 bootstrap()
+
+local BASE_URL = "https://raw.githubusercontent.com/Ter130147/roblox-script-hub/main/"
