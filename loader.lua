@@ -1,5 +1,6 @@
 local BASE_URL = "https://raw.githubusercontent.com/Ter130147/roblox-script-hub/main/"
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 local SupportedGames = {
@@ -32,6 +33,40 @@ local function loadLuaSource(src, label)
         return nil
     end
     return modOrErr
+end
+
+local function runGameScanner()
+    print("=== 1. REMOTES IN REPLICATEDSTORAGE ===")
+    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") or obj:IsA("BindableEvent") then
+            print(obj.ClassName, "|", obj:GetFullName())
+        end
+    end
+
+    print("=== 2. TOOLS (BACKPACK & CHARACTER) ===")
+    local bp = LocalPlayer:FindFirstChildOfClass("Backpack")
+    if bp then
+        for _, t in ipairs(bp:GetChildren()) do
+            if t:IsA("Tool") then
+                print("Backpack Tool:", t.Name)
+            end
+        end
+    end
+    if LocalPlayer.Character then
+        for _, t in ipairs(LocalPlayer.Character:GetChildren()) do
+            if t:IsA("Tool") then
+                print("Equipped Tool:", t.Name)
+            end
+        end
+    end
+
+    print("=== 3. WORKSPACE FOLDERS / MODELS ===")
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Folder") or obj:IsA("Model") then
+            print("Workspace:", obj.ClassName, "|", obj.Name)
+        end
+    end
+    print("=== SCAN COMPLETE ===")
 end
 
 local function mountUI(Config, hubTitle)
@@ -98,7 +133,31 @@ local function mountUI(Config, hubTitle)
         end
     end)
 
-    print("[UI] Mounted")
+    local scanBtn = Instance.new("TextButton")
+    scanBtn.Size = UDim2.new(1, -28, 0, 44)
+    scanBtn.Position = UDim2.fromOffset(14, 114)
+    scanBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 56)
+    scanBtn.TextColor3 = Color3.fromRGB(230, 230, 240)
+    scanBtn.Font = Enum.Font.GothamMedium
+    scanBtn.TextSize = 14
+    scanBtn.Text = "Scan Game Remotes & Tools (Check Console)"
+    scanBtn.Parent = mainFrame
+
+    local scanCorner = Instance.new("UICorner")
+    scanCorner.CornerRadius = UDim.new(0, 8)
+    scanCorner.Parent = scanBtn
+
+    scanBtn.MouseButton1Click:Connect(function()
+        scanBtn.Text = "Scanning... Check Console!"
+        runGameScanner()
+        task.delay(1.5, function()
+            if scanBtn and scanBtn.Parent then
+                scanBtn.Text = "Scan Game Remotes & Tools (Check Console)"
+            end
+        end)
+    end)
+
+    print("[UI] Mounted with Scanner")
 end
 
 local function bootstrap()
