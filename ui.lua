@@ -1,10 +1,9 @@
-﻿--!strict
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local UI = {}
 
-function UI.init(Config, hubTitle: string?)
+function UI.init(Config, hubTitle)
     local titleText = hubTitle or "TER HUB"
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -61,9 +60,11 @@ function UI.init(Config, hubTitle: string?)
     toggleBtn.MouseButton1Click:Connect(function()
         Config.AutoFarm = not Config.AutoFarm
         toggleBtn.Text = "Auto Farm : " .. (Config.AutoFarm and "ON" or "OFF")
-        toggleBtn.BackgroundColor3 = if Config.AutoFarm
-            then Color3.fromRGB(124, 77, 255)
-            else Color3.fromRGB(34, 34, 42)
+        if Config.AutoFarm then
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(124, 77, 255)
+        else
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(34, 34, 42)
+        end
     end)
 
     print("[UI] โหลดหน้าต่างเรียบร้อย")
