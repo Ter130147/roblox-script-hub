@@ -1,21 +1,17 @@
---!strict
--- หมายเหตุ: หากตอนอัปโหลดมีโฟลเดอร์ roblox-script-hub ซ้อนอยู่ ให้ใช้ URL แบบมี /roblox-script-hub/ ต่อท้าย main/
-local BASE_URL = "https://raw.githubusercontent.com/Ter130147/roblox-script-hub/main/roblox-script-hub/"
-
-local SupportedGames: { [number]: string } = {
-	-- แทนที่ 0000000000 ด้วย PlaceId จริงของแมพ Net a Fish
-	[93898234979111] = "games/net_a_fish.lua",
-}
-
-local function fetchRemote(relativePath: string): string?
-	local ok, result = pcall(function()
-		return game:HttpGet(BASE_URL .. relativePath)
-	end)
-	if not ok or type(result) ~= "string" then
-		warn("[Hub] โหลดไฟล์ไม่สำเร็จ:", relativePath, result)
+local function loadLuaSource(src: string, label: string): any
+	local chunk, compileErr = loadstring(src)
+	if not chunk then
+		warn("[Hub] Compile Error ใน " .. label .. ":", compileErr)
 		return nil
 	end
-	return result
+
+	local ok, modOrErr = pcall(chunk)
+	if not ok then
+		warn("[Hub] Runtime Error ตอนรัน " .. label .. ":", modOrErr)
+		return nil
+	end
+
+	return modOrErr
 end
 
 local function bootstrap()
@@ -35,15 +31,17 @@ local function bootstrap()
 		return
 	end
 
-	local Config = loadstring(configSrc)()
-	local Utils = loadstring(utilsSrc)()
-	local GameModule = loadstring(gameSrc)()
+	local Config = loadLuaSource(configSrc, "config.lua")
+	local Utils = loadLuaSource(utilsSrc, "core/utils.lua")
+	local GameModule = loadLuaSource(gameSrc, gameScriptPath)
+
+	if not (Config and Utils and GameModule) then
+		return
+	end
 
 	if type(GameModule) == "table" and type(GameModule.init) == "function" then
 		GameModule.init(Config, Utils)
+	else
+		warn("[Hub] โมดูลแมพไม่มีฟังก์ชัน init:", gameScriptPath)
 	end
 end
-
-bootstrap()
-
-local BASE_URL = "https://raw.githubusercontent.com/Ter130147/roblox-script-hub/main/"
