@@ -1,11 +1,10 @@
-﻿--!strict
 local BASE_URL = "https://raw.githubusercontent.com/Ter130147/roblox-script-hub/main/"
 
-local SupportedGames: { [number]: string } = {
+local SupportedGames = {
     [93898234979111] = "games/net_a_fish.lua",
 }
 
-local function fetchRemote(relativePath: string): string?
+local function fetchRemote(relativePath)
     local ok, result = pcall(function()
         return game:HttpGet(BASE_URL .. relativePath)
     end)
@@ -16,14 +15,14 @@ local function fetchRemote(relativePath: string): string?
     return result
 end
 
-local function loadLuaSource(src: string, label: string): any
-    local chunk, compileErr = loadstring(src)
-    if not chunk then
+local function loadLuaSource(src, label)
+    local fn, compileErr = loadstring(src)
+    if not fn then
         warn("[Hub] Compile Error ใน " .. label .. ":", compileErr)
         return nil
     end
 
-    local ok, modOrErr = pcall(chunk)
+    local ok, modOrErr = pcall(fn)
     if not ok then
         warn("[Hub] Runtime Error ตอนรัน " .. label .. ":", modOrErr)
         return nil
