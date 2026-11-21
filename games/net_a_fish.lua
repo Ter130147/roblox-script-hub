@@ -1,85 +1,106 @@
---!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-
 local LocalPlayer = Players.LocalPlayer
-local NetAFish = {}
 
--- ปรับรายชื่อ Remote หรือโฟลเดอร์ให้ตรงกับโครงสร้างจริงของแมพ Net a Fish
-local function findNetRemote(): RemoteEvent?
-	-- ตัวอย่างการค้นหา RemoteEvent แบบปลอดภัย ไม่ให้ error หากชื่อเปลี่ยน
-	for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
-		if descendant:IsA("RemoteEvent") then
-			local lowerName = string.lower(descendant.Name)
-			if string.find(lowerName, "net", 1, true) or string.find(lowerName, "catch", 1, true) or string.find(lowerName, "fish", 1, true) then
-				return descendant
-			end
-		end
-	end
-	return nil
+local GameModule = {}
+local running = false
+
+local function getRemotes()
+    local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
+    if not remotesFolder then
+        return nil
+    end
+    return {
+        ThrowNet = remotesFolder:FindFirstChild("ThrowNet"),
+        ReelIn = remotesFolder:FindFirstChild("ReelIn"),
+        ResolveCatch = remotesFolder:FindFirstChild("ResolveCatch"),
+        SpearShot = remotesFolder:FindFirstChild("SpearShot"),
+        SpearAction = remotesFolder:FindFirstChild("SpearAction"),
+        CollectPadReq = remotesFolder:FindFirstChild("CollectPadReq"),
+        SellFish = remotesFolder:FindFirstChild("SellFish"),
+    }
 end
 
-local function equipNetIfNeeded()
-	local character = LocalPlayer.Character
-	local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
-	if not character or not backpack then
-		return
-	end
-
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
-		return
-	end
-
-	-- ถ้ายังไม่ได้ถือเครื่องมือ ให้หา Tool ที่เกี่ยวข้องกับแห/จับปลาใน Backpack
-	local hasEquippedTool = character:FindFirstChildOfClass("Tool") ~= nil
-	if hasEquippedTool then
-		return
-	end
-
-	for _, item in ipairs(backpack:GetChildren()) do
-		if item:IsA("Tool") then
-			local lowerName = string.lower(item.Name)
-			if string.find(lowerName, "net", 1, true) or string.find(lowerName, "rod", 1, true) then
-				humanoid:EquipTool(item)
-				break
-			end
-		end
-	end
+local function findTargetPos()
+    local pools = {
+        workspace:FindFirstChild("ClientFish"),
+        workspace:FindFirstChild("PoolFishLocal"),
+        workspace:FindFirstChild("RiverLife"),
+    }
+    for _, folder in ipairs(pools) do
+        if folder then
+            for _, item in ipairs(folder:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    return item.Position
+                elseif item:IsA("Model") and item.PrimaryPart then
+                    return item.PrimaryPart.Position
+                end
+            end
+        end
+    end
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        return root.Position + (root.CFrame.LookVector * 12)
+    end
+    return nil
 end
 
-function NetAFish.init(Config, Utils)
-	print("[Net a Fish] โหลดโมดูลเรียบร้อย")
-	local netRemote = findNetRemote()
+local function farmStep(remotes)
+    local targetPos = findTargetPos()
 
-	task.spawn(function()
-		while Config.Enabled do
-			if Config.AutoFarm then
-				local ok, err = pcall(function()
-					local root = Utils.getRootPart()
-					if not root then
-						return
-					end
+    if remotes.ThrowNet and remotes.ThrowNet:IsA("RemoteEvent") then
+        if targetPos then
+            pcall(function() remotes.ThrowNet:FireServer(targetPos) end)
+        end
+        pcall(function() remotes.ThrowNet:FireServer() end)
+    end
 
-					equipNetIfNeeded()
+    if remotes.SpearShot and remotes.SpearShot:IsA("RemoteEvent") and targetPos then
+        pcall(function() remotes.SpearShot:FireServer(targetPos) end)
+    end
 
-					-- TODO: ปรับให้ตรงกับระบบจับปลาของแมพ Net a Fish
-					-- ตัวอย่างเช่น:
-					-- 1. วาร์ปไปยังจุดน้ำ/จุดปลาที่ต้องการด้วย Utils.safeTeleport(targetCFrame)
-					-- 2. ถ้าแมพใช้ RemoteEvent ให้เรียก netRemote:FireServer(...) พร้อมเช็ก nil ก่อนเสมอ
-					if netRemote then
-						-- netRemote:FireServer()
-					end
-				end)
+    task.wait(0.25)
 
-				if not ok then
-					warn("[Net a Fish Error]:", err)
-				end
-			end
+    if remotes.ReelIn and remotes.ReelIn:IsA("RemoteEvent") then
+        pcall(function() remotes.ReelIn:FireServer() end)
+    end
 
-			task.wait(Config.LoopDelay)
-		end
-	end)
+    if remotes.ResolveCatch and remotes.ResolveCatch:IsA("RemoteEvent") then
+        pcall(function() remotes.ResolveCatch:FireServer(true) end)
+        pcall(function() remotes.ResolveCatch:FireServer() end)
+    end
+
+    if remotes.CollectPadReq and remotes.CollectPadReq:IsA("RemoteEvent") then
+        pcall(function() remotes.CollectPadReq:FireServer() end)
+    end
 end
 
-return NetAFish
+function GameModule.init(Config, Utils)
+    if running then
+        return
+    end
+    running = true
+
+    task.spawn(function()
+        while running do
+            local delayTime = (Config and tonumber(Config.LoopDelay)) or 0.5
+            if delayTime < 0.1 then
+                delayTime = 0.1
+            end
+
+            if Config and Config.AutoFarm then
+                local remotes = getRemotes()
+                if remotes then
+                    farmStep(remotes)
+                end
+            end
+
+            task.wait(delayTime)
+        end
+    end)
+
+    print("[Net a Fish] ??????????????????")
+end
+
+return GameModule
