@@ -4,6 +4,16 @@ local SupportedGames = {
     [93898234979111] = "games/net_a_fish.lua",
 }
 
+local function stripBom(str)
+    if type(str) ~= "string" then
+        return str
+    end
+    if string.sub(str, 1, 3) == "\239\187\191" then
+        return string.sub(str, 4)
+    end
+    return str
+end
+
 local function fetchRemote(relativePath)
     local ok, result = pcall(function()
         return game:HttpGet(BASE_URL .. relativePath)
@@ -12,11 +22,12 @@ local function fetchRemote(relativePath)
         warn("[Hub] โหลดไฟล์ไม่สำเร็จ:", relativePath, result)
         return nil
     end
-    return result
+    return stripBom(result)
 end
 
 local function loadLuaSource(src, label)
-    local fn, compileErr = loadstring(src)
+    local cleanSrc = stripBom(src)
+    local fn, compileErr = loadstring(cleanSrc)
     if not fn then
         warn("[Hub] Compile Error ใน " .. label .. ":", compileErr)
         return nil
