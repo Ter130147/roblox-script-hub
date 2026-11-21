@@ -1,338 +1,430 @@
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 local UI = {}
 
-local COLORS = {
-    BgMain = Color3.fromRGB(16, 16, 19),
-    BgSidebar = Color3.fromRGB(13, 13, 16),
-    BgTopbar = Color3.fromRGB(14, 14, 17),
-    BgSection = Color3.fromRGB(22, 22, 26),
-    BgRow = Color3.fromRGB(28, 28, 33),
-    BgTabActive = Color3.fromRGB(32, 32, 38),
-    Stroke = Color3.fromRGB(42, 42, 50),
-    Accent = Color3.fromRGB(124, 77, 255),
-    ToggleOff = Color3.fromRGB(58, 58, 66),
-    TextMain = Color3.fromRGB(242, 242, 247),
-    TextSub = Color3.fromRGB(150, 150, 162),
+local PALETTE = {
+    WindowBg = Color3.fromRGB(14, 14, 18),
+    SidebarBg = Color3.fromRGB(11, 11, 14),
+    TopbarBg = Color3.fromRGB(17, 17, 22),
+    CardBg = Color3.fromRGB(21, 21, 27),
+    RowBg = Color3.fromRGB(27, 27, 35),
+    RowHover = Color3.fromRGB(33, 33, 43),
+    TabActive = Color3.fromRGB(30, 26, 44),
+    Border = Color3.fromRGB(44, 44, 56),
+    BorderAccent = Color3.fromRGB(124, 77, 255),
+    Accent = Color3.fromRGB(132, 86, 255),
+    AccentSoft = Color3.fromRGB(58, 41, 102),
+    OffTrack = Color3.fromRGB(54, 54, 64),
+    TextPrimary = Color3.fromRGB(246, 246, 252),
+    TextSecondary = Color3.fromRGB(154, 154, 170),
+    TextMuted = Color3.fromRGB(112, 112, 128),
+    Success = Color3.fromRGB(74, 222, 128),
 }
 
-local function addCorner(parent, radius)
+local function round(inst, r)
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, radius)
-    c.Parent = parent
+    c.CornerRadius = UDim.new(0, r)
+    c.Parent = inst
     return c
 end
 
-local function addStroke(parent, color, thickness)
+local function stroke(inst, col, thick, trans)
     local s = Instance.new("UIStroke")
-    s.Color = color or COLORS.Stroke
-    s.Thickness = thickness or 1
-    s.Parent = parent
+    s.Color = col or PALETTE.Border
+    s.Thickness = thick or 1
+    s.Transparency = trans or 0
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    s.Parent = inst
     return s
+end
+
+local function tween(inst, time, props)
+    local info = TweenInfo.new(time or 0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tw = TweenService:Create(inst, info, props)
+    tw:Play()
+    return tw
 end
 
 function UI.init(Config, hubTitle)
     local titleText = hubTitle or "TER HUB"
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-    local old = playerGui:FindFirstChild("TerHubModernUI")
-    if old then
-        old:Destroy()
+    local existing = playerGui:FindFirstChild("TerHubProUI")
+    if existing then
+        existing:Destroy()
     end
 
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "TerHubModernUI"
-    gui.ResetOnSpawn = false
-    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    gui.Parent = playerGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "TerHubProUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.DisplayOrder = 999
+    screenGui.Parent = playerGui
+
+    -- ปุ่มลอยเปิด/ปิดหน้าต่าง (เผื่อพับหรือปิดแล้วเปิดใหม่)
+    local quickToggle = Instance.new("TextButton")
+    quickToggle.Name = "QuickToggleBtn"
+    quickToggle.Size = UDim2.fromOffset(118, 34)
+    quickToggle.Position = UDim2.new(0, 16, 0.5, -17)
+    quickToggle.BackgroundColor3 = PALETTE.TopbarBg
+    quickToggle.Text = "✦  " .. titleText
+    quickToggle.Font = Enum.Font.GothamBold
+    quickToggle.TextSize = 12
+    quickToggle.TextColor3 = PALETTE.TextPrimary
+    quickToggle.Visible = false
+    quickToggle.Parent = screenGui
+    round(quickToggle, 8)
+    stroke(quickToggle, PALETTE.BorderAccent, 1.2, 0.25)
 
     -- หน้าต่างหลัก
-    local window = Instance.new("Frame")
-    window.Name = "MainWindow"
-    window.Size = UDim2.fromOffset(860, 520)
-    window.Position = UDim2.fromScale(0.5, 0.5)
-    window.AnchorPoint = Vector2.new(0.5, 0.5)
-    window.BackgroundColor3 = COLORS.BgMain
-    window.BorderSizePixel = 0
-    window.ClipsDescendants = true
-    window.Parent = gui
-    addCorner(window, 10)
-    addStroke(window, COLORS.Stroke, 1)
+    local main = Instance.new("Frame")
+    main.Name = "MainWindow"
+    main.Size = UDim2.fromOffset(880, 535)
+    main.Position = UDim2.fromScale(0.5, 0.5)
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.BackgroundColor3 = PALETTE.WindowBg
+    main.BorderSizePixel = 0
+    main.ClipsDescendants = true
+    main.Parent = screenGui
+    round(main, 12)
+    stroke(main, PALETTE.Border, 1.2, 0.1)
 
-    -- แถบด้านบน (Topbar)
+    local gradBg = Instance.new("UIGradient")
+    gradBg.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 20, 32)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(13, 13, 17)),
+    })
+    gradBg.Rotation = 35
+    gradBg.Parent = main
+
+    -- Topbar
     local topbar = Instance.new("Frame")
     topbar.Name = "Topbar"
-    topbar.Size = UDim2.new(1, 0, 0, 48)
-    topbar.BackgroundColor3 = COLORS.BgTopbar
+    topbar.Size = UDim2.new(1, 0, 0, 52)
+    topbar.BackgroundColor3 = PALETTE.TopbarBg
+    topbar.BackgroundTransparency = 0.15
     topbar.BorderSizePixel = 0
-    topbar.Parent = window
+    topbar.Parent = main
 
-    local topDivider = Instance.new("Frame")
-    topDivider.Size = UDim2.new(1, 0, 0, 1)
-    topDivider.Position = UDim2.new(0, 0, 1, -1)
-    topDivider.BackgroundColor3 = COLORS.Stroke
-    topDivider.BorderSizePixel = 0
-    topDivider.Parent = topbar
+    local topLine = Instance.new("Frame")
+    topLine.Size = UDim2.new(1, 0, 0, 1)
+    topLine.Position = UDim2.new(0, 0, 1, -1)
+    topLine.BackgroundColor3 = PALETTE.Border
+    topLine.BorderSizePixel = 0
+    topLine.Parent = topbar
 
-    local logoBadge = Instance.new("Frame")
-    logoBadge.Size = UDim2.fromOffset(28, 28)
-    logoBadge.Position = UDim2.fromOffset(14, 10)
-    logoBadge.BackgroundColor3 = COLORS.Accent
-    logoBadge.BorderSizePixel = 0
-    logoBadge.Parent = topbar
-    addCorner(logoBadge, 6)
+    local logoBox = Instance.new("Frame")
+    logoBox.Size = UDim2.fromOffset(32, 32)
+    logoBox.Position = UDim2.fromOffset(14, 10)
+    logoBox.BackgroundColor3 = PALETTE.Accent
+    logoBox.BorderSizePixel = 0
+    logoBox.Parent = topbar
+    round(logoBox, 8)
 
-    local logoText = Instance.new("TextLabel")
-    logoText.Size = UDim2.fromScale(1, 1)
-    logoText.BackgroundTransparency = 1
-    logoText.Text = "T"
-    logoText.Font = Enum.Font.GothamBold
-    logoText.TextSize = 15
-    logoText.TextColor3 = Color3.new(1, 1, 1)
-    logoText.Parent = logoBadge
+    local logoGrad = Instance.new("UIGradient")
+    logoGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(156, 112, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(92, 48, 224)),
+    })
+    logoGrad.Rotation = 135
+    logoGrad.Parent = logoBox
 
-    local titleLbl = Instance.new("TextLabel")
-    titleLbl.Size = UDim2.fromOffset(320, 20)
-    titleLbl.Position = UDim2.fromOffset(52, 7)
-    titleLbl.BackgroundTransparency = 1
-    titleLbl.Text = titleText
-    titleLbl.Font = Enum.Font.GothamBold
-    titleLbl.TextSize = 14
-    titleLbl.TextColor3 = COLORS.TextMain
-    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
-    titleLbl.Parent = topbar
+    local logoLbl = Instance.new("TextLabel")
+    logoLbl.Size = UDim2.fromScale(1, 1)
+    logoLbl.BackgroundTransparency = 1
+    logoLbl.Text = "TH"
+    logoLbl.Font = Enum.Font.GothamBlack
+    logoLbl.TextSize = 13
+    logoLbl.TextColor3 = Color3.new(1, 1, 1)
+    logoLbl.Parent = logoBox
 
-    local subLbl = Instance.new("TextLabel")
-    subLbl.Size = UDim2.fromOffset(320, 16)
-    subLbl.Position = UDim2.fromOffset(52, 26)
-    subLbl.BackgroundTransparency = 1
-    subLbl.Text = "Net a Fish  •  v1.0"
-    subLbl.Font = Enum.Font.Gotham
-    subLbl.TextSize = 11
-    subLbl.TextColor3 = COLORS.TextSub
-    subLbl.TextXAlignment = Enum.TextXAlignment.Left
-    subLbl.Parent = topbar
+    local hubTitleLbl = Instance.new("TextLabel")
+    hubTitleLbl.Size = UDim2.fromOffset(260, 20)
+    hubTitleLbl.Position = UDim2.fromOffset(54, 8)
+    hubTitleLbl.BackgroundTransparency = 1
+    hubTitleLbl.Text = titleText .. "  •  NET A FISH"
+    hubTitleLbl.Font = Enum.Font.GothamBold
+    hubTitleLbl.TextSize = 14
+    hubTitleLbl.TextColor3 = PALETTE.TextPrimary
+    hubTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    hubTitleLbl.Parent = topbar
 
-    -- ปุ่มย่อ / ปิดมุมขวาบน
-    local minBtn = Instance.new("TextButton")
-    minBtn.Size = UDim2.fromOffset(30, 30)
-    minBtn.Position = UDim2.new(1, -72, 0, 9)
-    minBtn.BackgroundTransparency = 1
-    minBtn.Text = "—"
-    minBtn.Font = Enum.Font.GothamBold
-    minBtn.TextSize = 13
-    minBtn.TextColor3 = COLORS.TextSub
-    minBtn.Parent = topbar
+    local hubSubLbl = Instance.new("TextLabel")
+    hubSubLbl.Size = UDim2.fromOffset(320, 16)
+    hubSubLbl.Position = UDim2.fromOffset(54, 28)
+    hubSubLbl.BackgroundTransparency = 1
+    hubSubLbl.Text = "Pro Control Panel  •  PlaceId 93898234979111"
+    hubSubLbl.Font = Enum.Font.Gotham
+    hubSubLbl.TextSize = 11
+    hubSubLbl.TextColor3 = PALETTE.TextSecondary
+    hubSubLbl.TextXAlignment = Enum.TextXAlignment.Left
+    hubSubLbl.Parent = topbar
 
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.fromOffset(30, 30)
-    closeBtn.Position = UDim2.new(1, -38, 0, 9)
-    closeBtn.BackgroundTransparency = 1
-    closeBtn.Text = "✕"
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 14
-    closeBtn.TextColor3 = COLORS.TextSub
-    closeBtn.Parent = topbar
+    -- ป้ายสถานะออนไลน์มุมขวาบน
+    local statusPill = Instance.new("Frame")
+    statusPill.Size = UDim2.fromOffset(92, 24)
+    statusPill.Position = UDim2.new(1, -176, 0.5, -12)
+    statusPill.BackgroundColor3 = PALETTE.RowBg
+    statusPill.BorderSizePixel = 0
+    statusPill.Parent = topbar
+    round(statusPill, 12)
+    stroke(statusPill, PALETTE.Border, 1, 0.2)
 
-    local minimized = false
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.fromOffset(7, 7)
+    dot.Position = UDim2.fromOffset(10, 8.5)
+    dot.BackgroundColor3 = PALETTE.Success
+    dot.BorderSizePixel = 0
+    dot.Parent = statusPill
+    round(dot, 4)
+
+    local statusText = Instance.new("TextLabel")
+    statusText.Size = UDim2.new(1, -24, 1, 0)
+    statusText.Position = UDim2.fromOffset(22, 0)
+    statusText.BackgroundTransparency = 1
+    statusText.Text = "READY"
+    statusText.Font = Enum.Font.GothamBold
+    statusText.TextSize = 10
+    statusText.TextColor3 = PALETTE.Success
+    statusText.TextXAlignment = Enum.TextXAlignment.Left
+    statusText.Parent = statusPill
+
+    local function makeWinBtn(txt, offsetX, isClose)
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.fromOffset(32, 32)
+        b.Position = UDim2.new(1, offsetX, 0.5, -16)
+        b.BackgroundColor3 = PALETTE.RowBg
+        b.BackgroundTransparency = 0.4
+        b.Text = txt
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 13
+        b.TextColor3 = PALETTE.TextSecondary
+        b.Parent = topbar
+        round(b, 7)
+
+        b.MouseEnter:Connect(function()
+            tween(b, 0.12, {
+                BackgroundColor3 = isClose and Color3.fromRGB(185, 48, 68) or PALETTE.RowHover,
+                BackgroundTransparency = 0,
+                TextColor3 = PALETTE.TextPrimary,
+            })
+        end)
+        b.MouseLeave:Connect(function()
+            tween(b, 0.12, {
+                BackgroundColor3 = PALETTE.RowBg,
+                BackgroundTransparency = 0.4,
+                TextColor3 = PALETTE.TextSecondary,
+            })
+        end)
+        return b
+    end
+
+    local minBtn = makeWinBtn("—", -76, false)
+    local closeBtn = makeWinBtn("✕", -40, true)
+
+    local isCollapsed = false
     minBtn.MouseButton1Click:Connect(function()
-        minimized = not minimized
-        if minimized then
-            window.Size = UDim2.fromOffset(860, 48)
-        else
-            window.Size = UDim2.fromOffset(860, 520)
-        end
+        isCollapsed = not isCollapsed
+        tween(main, 0.18, {
+            Size = isCollapsed and UDim2.fromOffset(880, 52) or UDim2.fromOffset(880, 535),
+        })
     end)
 
     closeBtn.MouseButton1Click:Connect(function()
-        gui:Destroy()
+        main.Visible = false
+        quickToggle.Visible = true
     end)
 
-    -- ระบบลากหน้าต่างจาก Topbar
-    local dragging, dragStart, startPos = false, nil, nil
-    topbar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    quickToggle.MouseButton1Click:Connect(function()
+        quickToggle.Visible = false
+        main.Visible = true
+    end)
+
+    -- ลากหน้าต่าง
+    local dragging, dragOrigin, winOrigin = false, nil, nil
+    topbar.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
-            dragStart = input.Position
-            startPos = window.Position
+            dragOrigin = inp.Position
+            winOrigin = main.Position
         end
     end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            window.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
+    UserInputService.InputChanged:Connect(function(inp)
+        if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+            local d = inp.Position - dragOrigin
+            main.Position = UDim2.new(
+                winOrigin.X.Scale,
+                winOrigin.X.Offset + d.X,
+                winOrigin.Y.Scale,
+                winOrigin.Y.Offset + d.Y
             )
         end
     end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    UserInputService.InputEnded:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
     end)
 
-    -- แถบเมนูด้านซ้าย (Sidebar)
+    -- Sidebar ซ้าย
     local sidebar = Instance.new("Frame")
     sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.new(0, 185, 1, -48)
-    sidebar.Position = UDim2.fromOffset(0, 48)
-    sidebar.BackgroundColor3 = COLORS.BgSidebar
+    sidebar.Size = UDim2.new(0, 196, 1, -52)
+    sidebar.Position = UDim2.fromOffset(0, 52)
+    sidebar.BackgroundColor3 = PALETTE.SidebarBg
+    sidebar.BackgroundTransparency = 0.25
     sidebar.BorderSizePixel = 0
-    sidebar.Parent = window
+    sidebar.Parent = main
 
-    local sideDivider = Instance.new("Frame")
-    sideDivider.Size = UDim2.new(0, 1, 1, 0)
-    sideDivider.Position = UDim2.new(1, -1, 0, 0)
-    sideDivider.BackgroundColor3 = COLORS.Stroke
-    sideDivider.BorderSizePixel = 0
-    sideDivider.Parent = sidebar
+    local sideLine = Instance.new("Frame")
+    sideLine.Size = UDim2.new(0, 1, 1, 0)
+    sideLine.Position = UDim2.new(1, -1, 0, 0)
+    sideLine.BackgroundColor3 = PALETTE.Border
+    sideLine.BorderSizePixel = 0
+    sideLine.Parent = sidebar
 
-    -- ชื่อผู้เล่นด้านบน Sidebar
-    local profileBox = Instance.new("Frame")
-    profileBox.Size = UDim2.new(1, -16, 0, 38)
-    profileBox.Position = UDim2.fromOffset(8, 10)
-    profileBox.BackgroundTransparency = 1
-    profileBox.Parent = sidebar
+    local userCard = Instance.new("Frame")
+    userCard.Size = UDim2.new(1, -20, 0, 44)
+    userCard.Position = UDim2.fromOffset(10, 12)
+    userCard.BackgroundColor3 = PALETTE.CardBg
+    userCard.BorderSizePixel = 0
+    userCard.Parent = sidebar
+    round(userCard, 8)
+    stroke(userCard, PALETTE.Border, 1, 0.35)
 
-    local profileLbl = Instance.new("TextLabel")
-    profileLbl.Size = UDim2.new(1, -12, 1, 0)
-    profileLbl.Position = UDim2.fromOffset(10, 0)
-    profileLbl.BackgroundTransparency = 1
-    profileLbl.Text = "👤  " .. LocalPlayer.Name
-    profileLbl.Font = Enum.Font.GothamMedium
-    profileLbl.TextSize = 13
-    profileLbl.TextColor3 = COLORS.TextSub
-    profileLbl.TextXAlignment = Enum.TextXAlignment.Left
-    profileLbl.Parent = profileBox
+    local userLbl = Instance.new("TextLabel")
+    userLbl.Size = UDim2.new(1, -16, 1, 0)
+    userLbl.Position = UDim2.fromOffset(12, 0)
+    userLbl.BackgroundTransparency = 1
+    userLbl.Text = "👤  " .. LocalPlayer.DisplayName
+    userLbl.Font = Enum.Font.GothamBold
+    userLbl.TextSize = 12
+    userLbl.TextColor3 = PALETTE.TextPrimary
+    userLbl.TextXAlignment = Enum.TextXAlignment.Left
+    userLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    userLbl.Parent = userCard
 
-    local tabList = Instance.new("Frame")
-    tabList.Size = UDim2.new(1, -16, 1, -58)
-    tabList.Position = UDim2.fromOffset(8, 52)
-    tabList.BackgroundTransparency = 1
-    tabList.Parent = sidebar
+    local navHolder = Instance.new("Frame")
+    navHolder.Size = UDim2.new(1, -20, 1, -72)
+    navHolder.Position = UDim2.fromOffset(10, 64)
+    navHolder.BackgroundTransparency = 1
+    navHolder.Parent = sidebar
 
-    local tabLayout = Instance.new("UIListLayout")
-    tabLayout.Padding = UDim.new(0, 4)
-    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    tabLayout.Parent = tabList
+    local navLayout = Instance.new("UIListLayout")
+    navLayout.Padding = UDim.new(0, 5)
+    navLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    navLayout.Parent = navHolder
 
-    -- พื้นที่แสดงเนื้อหาฝั่งขวา
-    local contentArea = Instance.new("Frame")
-    contentArea.Name = "ContentArea"
-    contentArea.Size = UDim2.new(1, -185, 1, -48)
-    contentArea.Position = UDim2.fromOffset(185, 48)
-    contentArea.BackgroundTransparency = 1
-    contentArea.Parent = window
+    -- Content Area ขวา
+    local content = Instance.new("Frame")
+    content.Name = "Content"
+    content.Size = UDim2.new(1, -196, 1, -52)
+    content.Position = UDim2.fromOffset(196, 52)
+    content.BackgroundTransparency = 1
+    content.Parent = main
 
     local pages = {}
-    local tabButtons = {}
+    local tabs = {}
 
-    local function selectTab(tabKey)
-        for key, page in pairs(pages) do
-            page.Visible = (key == tabKey)
+    local function activateTab(id)
+        for k, p in pairs(pages) do
+            p.Visible = (k == id)
         end
-        for key, btnObj in pairs(tabButtons) do
-            if key == tabKey then
-                btnObj.Button.BackgroundColor3 = COLORS.BgTabActive
-                btnObj.Button.BackgroundTransparency = 0
-                btnObj.Indicator.Visible = true
-                btnObj.Label.TextColor3 = COLORS.TextMain
-            else
-                btnObj.Button.BackgroundTransparency = 1
-                btnObj.Indicator.Visible = false
-                btnObj.Label.TextColor3 = COLORS.TextSub
-            end
+        for k, t in pairs(tabs) do
+            local active = (k == id)
+            tween(t.Btn, 0.14, {
+                BackgroundColor3 = active and PALETTE.TabActive or PALETTE.SidebarBg,
+                BackgroundTransparency = active and 0.15 or 1,
+            })
+            t.Bar.Visible = active
+            t.Text.TextColor3 = active and PALETTE.TextPrimary or PALETTE.TextSecondary
+            t.Text.Font = active and Enum.Font.GothamBold or Enum.Font.GothamMedium
         end
     end
 
-    local function createTab(key, iconText, labelText, order)
+    local function createPage(id, icon, name, order)
         local btn = Instance.new("TextButton")
-        btn.Name = key .. "Tab"
+        btn.Name = "Tab_" .. id
         btn.LayoutOrder = order
-        btn.Size = UDim2.new(1, 0, 0, 36)
-        btn.BackgroundColor3 = COLORS.BgTabActive
+        btn.Size = UDim2.new(1, 0, 0, 38)
+        btn.BackgroundColor3 = PALETTE.TabActive
         btn.BackgroundTransparency = 1
         btn.Text = ""
         btn.AutoButtonColor = false
-        btn.Parent = tabList
-        addCorner(btn, 7)
+        btn.Parent = navHolder
+        round(btn, 8)
 
-        local indicator = Instance.new("Frame")
-        indicator.Size = UDim2.new(0, 3, 0, 18)
-        indicator.Position = UDim2.new(0, 3, 0.5, -9)
-        indicator.BackgroundColor3 = COLORS.Accent
-        indicator.BorderSizePixel = 0
-        indicator.Visible = false
-        indicator.Parent = btn
-        addCorner(indicator, 2)
+        local bar = Instance.new("Frame")
+        bar.Size = UDim2.new(0, 3, 0, 20)
+        bar.Position = UDim2.new(0, 4, 0.5, -10)
+        bar.BackgroundColor3 = PALETTE.Accent
+        bar.BorderSizePixel = 0
+        bar.Visible = false
+        bar.Parent = btn
+        round(bar, 2)
 
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, -18, 1, 0)
-        lbl.Position = UDim2.fromOffset(14, 0)
+        lbl.Size = UDim2.new(1, -22, 1, 0)
+        lbl.Position = UDim2.fromOffset(16, 0)
         lbl.BackgroundTransparency = 1
-        lbl.Text = iconText .. "   " .. labelText
+        lbl.Text = icon .. "   " .. name
         lbl.Font = Enum.Font.GothamMedium
         lbl.TextSize = 13
-        lbl.TextColor3 = COLORS.TextSub
+        lbl.TextColor3 = PALETTE.TextSecondary
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         lbl.Parent = btn
 
         local page = Instance.new("ScrollingFrame")
-        page.Name = key .. "Page"
-        page.Size = UDim2.new(1, 0, 1, 0)
+        page.Name = "Page_" .. id
+        page.Size = UDim2.fromScale(1, 1)
         page.BackgroundTransparency = 1
         page.BorderSizePixel = 0
         page.ScrollBarThickness = 4
-        page.ScrollBarImageColor3 = COLORS.Stroke
+        page.ScrollBarImageColor3 = PALETTE.Accent
         page.CanvasSize = UDim2.new(0, 0, 0, 0)
         page.AutomaticCanvasSize = Enum.AutomaticSize.Y
         page.Visible = false
-        page.Parent = contentArea
+        page.Parent = content
 
         local pad = Instance.new("UIPadding")
         pad.PaddingTop = UDim.new(0, 14)
-        pad.PaddingBottom = UDim.new(0, 14)
+        pad.PaddingBottom = UDim.new(0, 16)
         pad.PaddingLeft = UDim.new(0, 14)
         pad.PaddingRight = UDim.new(0, 14)
         pad.Parent = page
 
-        local pageLayout = Instance.new("UIListLayout")
-        pageLayout.Padding = UDim.new(0, 12)
-        pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        pageLayout.Parent = page
+        local layout = Instance.new("UIListLayout")
+        layout.Padding = UDim.new(0, 12)
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Parent = page
 
         btn.MouseButton1Click:Connect(function()
-            selectTab(key)
+            activateTab(id)
         end)
 
-        pages[key] = page
-        tabButtons[key] = {
-            Button = btn,
-            Indicator = indicator,
-            Label = lbl,
-        }
+        pages[id] = page
+        tabs[id] = { Btn = btn, Bar = bar, Text = lbl }
         return page
     end
 
-    local function createSection(page, title, order)
+    local function createCard(page, title, badgeTxt, order)
         local card = Instance.new("Frame")
         card.LayoutOrder = order
         card.Size = UDim2.new(1, 0, 0, 0)
         card.AutomaticSize = Enum.AutomaticSize.Y
-        card.BackgroundColor3 = COLORS.BgSection
+        card.BackgroundColor3 = PALETTE.CardBg
+        card.BackgroundTransparency = 0.1
         card.BorderSizePixel = 0
         card.Parent = page
-        addCorner(card, 9)
-        addStroke(card, COLORS.Stroke, 1)
+        round(card, 10)
+        stroke(card, PALETTE.Border, 1, 0.25)
 
         local pad = Instance.new("UIPadding")
         pad.PaddingTop = UDim.new(0, 10)
-        pad.PaddingBottom = UDim.new(0, 10)
+        pad.PaddingBottom = UDim.new(0, 12)
         pad.PaddingLeft = UDim.new(0, 12)
         pad.PaddingRight = UDim.new(0, 12)
         pad.Parent = card
@@ -342,228 +434,326 @@ function UI.init(Config, hubTitle)
         layout.SortOrder = Enum.SortOrder.LayoutOrder
         layout.Parent = card
 
-        local secTitle = Instance.new("TextLabel")
-        secTitle.LayoutOrder = 0
-        secTitle.Size = UDim2.new(1, 0, 0, 22)
-        secTitle.BackgroundTransparency = 1
-        secTitle.Text = title
-        secTitle.Font = Enum.Font.GothamBold
-        secTitle.TextSize = 13
-        secTitle.TextColor3 = COLORS.TextMain
-        secTitle.TextXAlignment = Enum.TextXAlignment.Left
-        secTitle.Parent = card
+        local head = Instance.new("Frame")
+        head.LayoutOrder = 0
+        head.Size = UDim2.new(1, 0, 0, 24)
+        head.BackgroundTransparency = 1
+        head.Parent = card
+
+        local titleLbl = Instance.new("TextLabel")
+        titleLbl.Size = UDim2.new(1, -110, 1, 0)
+        titleLbl.BackgroundTransparency = 1
+        titleLbl.Text = title
+        titleLbl.Font = Enum.Font.GothamBold
+        titleLbl.TextSize = 13
+        titleLbl.TextColor3 = PALETTE.TextPrimary
+        titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+        titleLbl.Parent = head
+
+        if badgeTxt then
+            local badge = Instance.new("TextLabel")
+            badge.Size = UDim2.fromOffset(96, 20)
+            badge.Position = UDim2.new(1, -96, 0.5, -10)
+            badge.BackgroundColor3 = PALETTE.RowBg
+            badge.Text = badgeTxt
+            badge.Font = Enum.Font.GothamBold
+            badge.TextSize = 10
+            badge.TextColor3 = PALETTE.TextSecondary
+            badge.Parent = head
+            round(badge, 6)
+        end
 
         return card
     end
 
-    local function addToggle(section, labelText, subText, configKey, order)
+    local function createToggle(card, title, desc, key, order)
         local row = Instance.new("Frame")
         row.LayoutOrder = order
-        row.Size = UDim2.new(1, 0, 0, subText and 48 or 38)
-        row.BackgroundColor3 = COLORS.BgRow
+        row.Size = UDim2.new(1, 0, 0, desc and 52 or 40)
+        row.BackgroundColor3 = PALETTE.RowBg
         row.BorderSizePixel = 0
-        row.Parent = section
-        addCorner(row, 7)
+        row.Parent = card
+        round(row, 8)
+        stroke(row, PALETTE.Border, 1, 0.65)
 
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, -74, 0, 20)
-        lbl.Position = UDim2.fromOffset(12, subText and 6 or 9)
+        lbl.Size = UDim2.new(1, -82, 0, 20)
+        lbl.Position = UDim2.fromOffset(12, desc and 7 or 10)
         lbl.BackgroundTransparency = 1
-        lbl.Text = labelText
+        lbl.Text = title
         lbl.Font = Enum.Font.GothamMedium
         lbl.TextSize = 13
-        lbl.TextColor3 = COLORS.TextMain
+        lbl.TextColor3 = PALETTE.TextPrimary
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         lbl.Parent = row
 
-        if subText then
+        if desc then
             local sub = Instance.new("TextLabel")
-            sub.Size = UDim2.new(1, -74, 0, 16)
-            sub.Position = UDim2.fromOffset(12, 26)
+            sub.Size = UDim2.new(1, -82, 0, 16)
+            sub.Position = UDim2.fromOffset(12, 28)
             sub.BackgroundTransparency = 1
-            sub.Text = subText
+            sub.Text = desc
             sub.Font = Enum.Font.Gotham
             sub.TextSize = 11
-            sub.TextColor3 = COLORS.TextSub
+            sub.TextColor3 = PALETTE.TextSecondary
             sub.TextXAlignment = Enum.TextXAlignment.Left
             sub.Parent = row
         end
 
-        local switchBtn = Instance.new("TextButton")
-        switchBtn.Size = UDim2.fromOffset(42, 22)
-        switchBtn.Position = UDim2.new(1, -54, 0.5, -11)
-        switchBtn.BackgroundColor3 = Config[configKey] and COLORS.Accent or COLORS.ToggleOff
-        switchBtn.Text = ""
-        switchBtn.AutoButtonColor = false
-        switchBtn.Parent = row
-        addCorner(switchBtn, 11)
+        local tag = Instance.new("TextLabel")
+        tag.Size = UDim2.fromOffset(32, 16)
+        tag.Position = UDim2.new(1, -94, 0.5, -8)
+        tag.BackgroundTransparency = 1
+        tag.Text = Config[key] and "ON" or "OFF"
+        tag.Font = Enum.Font.GothamBold
+        tag.TextSize = 10
+        tag.TextColor3 = Config[key] and PALETTE.Success or PALETTE.TextMuted
+        tag.Parent = row
+
+        local sw = Instance.new("TextButton")
+        sw.Size = UDim2.fromOffset(44, 24)
+        sw.Position = UDim2.new(1, -56, 0.5, -12)
+        sw.BackgroundColor3 = Config[key] and PALETTE.Accent or PALETTE.OffTrack
+        sw.Text = ""
+        sw.AutoButtonColor = false
+        sw.Parent = row
+        round(sw, 12)
 
         local knob = Instance.new("Frame")
-        knob.Size = UDim2.fromOffset(16, 16)
-        knob.Position = Config[configKey] and UDim2.fromOffset(23, 3) or UDim2.fromOffset(3, 3)
+        knob.Size = UDim2.fromOffset(18, 18)
+        knob.Position = Config[key] and UDim2.fromOffset(23, 3) or UDim2.fromOffset(3, 3)
         knob.BackgroundColor3 = Color3.new(1, 1, 1)
         knob.BorderSizePixel = 0
-        knob.Parent = switchBtn
-        addCorner(knob, 8)
+        knob.Parent = sw
+        round(knob, 9)
 
-        switchBtn.MouseButton1Click:Connect(function()
-            Config[configKey] = not Config[configKey]
-            local state = Config[configKey]
-            switchBtn.BackgroundColor3 = state and COLORS.Accent or COLORS.ToggleOff
-            knob.Position = state and UDim2.fromOffset(23, 3) or UDim2.fromOffset(3, 3)
+        row.MouseEnter:Connect(function()
+            tween(row, 0.12, { BackgroundColor3 = PALETTE.RowHover })
+        end)
+        row.MouseLeave:Connect(function()
+            tween(row, 0.12, { BackgroundColor3 = PALETTE.RowBg })
+        end)
+
+        sw.MouseButton1Click:Connect(function()
+            Config[key] = not Config[key]
+            local on = Config[key]
+            tag.Text = on and "ON" or "OFF"
+            tag.TextColor3 = on and PALETTE.Success or PALETTE.TextMuted
+            tween(sw, 0.14, { BackgroundColor3 = on and PALETTE.Accent or PALETTE.OffTrack })
+            tween(knob, 0.14, { Position = on and UDim2.fromOffset(23, 3) or UDim2.fromOffset(3, 3) })
         end)
     end
 
-    local function addSlider(section, labelText, minVal, maxVal, configKey, order)
+    local function createSlider(card, title, minV, maxV, suffix, key, order)
         local row = Instance.new("Frame")
         row.LayoutOrder = order
-        row.Size = UDim2.new(1, 0, 0, 50)
-        row.BackgroundColor3 = COLORS.BgRow
+        row.Size = UDim2.new(1, 0, 0, 54)
+        row.BackgroundColor3 = PALETTE.RowBg
         row.BorderSizePixel = 0
-        row.Parent = section
-        addCorner(row, 7)
+        row.Parent = card
+        round(row, 8)
+        stroke(row, PALETTE.Border, 1, 0.65)
 
-        local currentVal = tonumber(Config[configKey]) or minVal
+        local cur = tonumber(Config[key]) or minV
 
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, -80, 0, 20)
-        lbl.Position = UDim2.fromOffset(12, 6)
+        lbl.Size = UDim2.new(1, -100, 0, 20)
+        lbl.Position = UDim2.fromOffset(12, 7)
         lbl.BackgroundTransparency = 1
-        lbl.Text = labelText
+        lbl.Text = title
         lbl.Font = Enum.Font.GothamMedium
         lbl.TextSize = 13
-        lbl.TextColor3 = COLORS.TextMain
+        lbl.TextColor3 = PALETTE.TextPrimary
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         lbl.Parent = row
 
         local valLbl = Instance.new("TextLabel")
-        valLbl.Size = UDim2.fromOffset(60, 20)
-        valLbl.Position = UDim2.new(1, -72, 0, 6)
+        valLbl.Size = UDim2.fromOffset(80, 20)
+        valLbl.Position = UDim2.new(1, -92, 0, 7)
         valLbl.BackgroundTransparency = 1
-        valLbl.Text = tostring(currentVal)
+        valLbl.Text = tostring(cur) .. (suffix or "")
         valLbl.Font = Enum.Font.GothamBold
         valLbl.TextSize = 12
-        valLbl.TextColor3 = COLORS.TextSub
+        valLbl.TextColor3 = PALETTE.Accent
         valLbl.TextXAlignment = Enum.TextXAlignment.Right
         valLbl.Parent = row
 
         local track = Instance.new("TextButton")
-        track.Size = UDim2.new(1, -24, 0, 6)
-        track.Position = UDim2.fromOffset(12, 34)
-        track.BackgroundColor3 = COLORS.ToggleOff
+        track.Size = UDim2.new(1, -24, 0, 7)
+        track.Position = UDim2.fromOffset(12, 36)
+        track.BackgroundColor3 = PALETTE.OffTrack
         track.Text = ""
         track.AutoButtonColor = false
         track.Parent = row
-        addCorner(track, 3)
+        round(track, 4)
 
-        local ratio = math.clamp((currentVal - minVal) / (maxVal - minVal), 0, 1)
+        local ratio = math.clamp((cur - minV) / (maxV - minV), 0, 1)
         local fill = Instance.new("Frame")
         fill.Size = UDim2.new(ratio, 0, 1, 0)
-        fill.BackgroundColor3 = COLORS.Accent
+        fill.BackgroundColor3 = PALETTE.Accent
         fill.BorderSizePixel = 0
         fill.Parent = track
-        addCorner(fill, 3)
+        round(fill, 4)
 
         local thumb = Instance.new("Frame")
-        thumb.Size = UDim2.fromOffset(14, 14)
-        thumb.Position = UDim2.new(ratio, -7, 0.5, -7)
+        thumb.Size = UDim2.fromOffset(15, 15)
+        thumb.Position = UDim2.new(ratio, -7.5, 0.5, -7.5)
         thumb.BackgroundColor3 = Color3.new(1, 1, 1)
         thumb.BorderSizePixel = 0
         thumb.Parent = track
-        addCorner(thumb, 7)
+        round(thumb, 8)
 
-        local sliding = false
-        local function updateSlider(mouseX)
-            local rel = math.clamp((mouseX - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-            local newVal = math.floor(minVal + (maxVal - minVal) * rel + 0.5)
-            Config[configKey] = newVal
-            valLbl.Text = tostring(newVal)
-            fill.Size = UDim2.new(rel, 0, 1, 0)
-            thumb.Position = UDim2.new(rel, -7, 0.5, -7)
+        local draggingSlider = false
+        local function applyX(px)
+            local r = math.clamp((px - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
+            local v = math.floor(minV + (maxV - minV) * r + 0.5)
+            Config[key] = v
+            valLbl.Text = tostring(v) .. (suffix or "")
+            fill.Size = UDim2.new(r, 0, 1, 0)
+            thumb.Position = UDim2.new(r, -7.5, 0.5, -7.5)
         end
 
-        track.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                sliding = true
-                updateSlider(input.Position.X)
+        track.InputBegan:Connect(function(inp)
+            if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                draggingSlider = true
+                applyX(inp.Position.X)
             end
         end)
-        UserInputService.InputChanged:Connect(function(input)
-            if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then
-                updateSlider(input.Position.X)
+        UserInputService.InputChanged:Connect(function(inp)
+            if draggingSlider and inp.UserInputType == Enum.UserInputType.MouseMovement then
+                applyX(inp.Position.X)
             end
         end)
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                sliding = false
+        UserInputService.InputEnded:Connect(function(inp)
+            if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                draggingSlider = false
             end
         end)
     end
 
-    -- สร้างแท็บทั้ง 6 หมวดเหมือนในภาพ
-    local tabFishing = createTab("fishing", "🐟", "ตกปลา", 1)
-    local tabCooler  = createTab("cooler", "📦", "กล่องปลา", 2)
-    local tabUpgrade = createTab("upgrade", "⬆️", "อัปเกรด", 3)
-    local tabReward  = createTab("reward", "🎁", "รางวัล", 4)
-    local tabArena   = createTab("arena", "⚔️", "อารีนา", 5)
-    local tabSetting = createTab("setting", "⚙️", "ตั้งค่า", 6)
+    local function createActionBtn(card, title, desc, onClick, order)
+        local row = Instance.new("Frame")
+        row.LayoutOrder = order
+        row.Size = UDim2.new(1, 0, 0, 48)
+        row.BackgroundColor3 = PALETTE.RowBg
+        row.BorderSizePixel = 0
+        row.Parent = card
+        round(row, 8)
+        stroke(row, PALETTE.Border, 1, 0.65)
 
-    -- 1. หน้า ตกปลา
-    local secFishMain = createSection(tabFishing, "Main", 1)
-    addToggle(secFishMain, "จับปลาอัตโนมัติ", "โยนอวนและจับปลาอัตโนมัติ", "AutoCatch", 1)
-    addToggle(secFishMain, "ดึงอวนเมื่อเต็มอัตโนมัติ", nil, "AutoReelFull", 2)
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -155, 0, 20)
+        lbl.Position = UDim2.fromOffset(12, 6)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = title
+        lbl.Font = Enum.Font.GothamMedium
+        lbl.TextSize = 13
+        lbl.TextColor3 = PALETTE.TextPrimary
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent = row
 
-    local secFishMisc = createSection(tabFishing, "อื่น ๆ", 2)
-    addSlider(secFishMisc, "เก็บทุก (วิ)", 1, 120, "CollectInterval", 1)
-    addToggle(secFishMisc, "วาร์ปไปเหยียบแท่น", nil, "WarpToPad", 2)
-    addToggle(secFishMisc, "เก็บเงินอัตโนมัติ", nil, "AutoCollectCash", 3)
+        local sub = Instance.new("TextLabel")
+        sub.Size = UDim2.new(1, -155, 0, 16)
+        sub.Position = UDim2.fromOffset(12, 26)
+        sub.BackgroundTransparency = 1
+        sub.Text = desc
+        sub.Font = Enum.Font.Gotham
+        sub.TextSize = 11
+        sub.TextColor3 = PALETTE.TextSecondary
+        sub.TextXAlignment = Enum.TextXAlignment.Left
+        sub.Parent = row
 
-    local secFishEvent = createSection(tabFishing, "อีเวนต์", 3)
-    addToggle(secFishEvent, "ยิงเมกาโลดอนอัตโนมัติ", "รอเมกาโลดอนโผล่", "AutoShootMeg", 1)
-    addToggle(secFishEvent, "ยิง Bloop อัตโนมัติ", "รอ Bloop โผล่", "AutoShootBloop", 2)
-    addToggle(secFishEvent, "รีเบิร์ธอัตโนมัติ", nil, "AutoRebirth", 3)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.fromOffset(132, 30)
+        btn.Position = UDim2.new(1, -144, 0.5, -15)
+        btn.BackgroundColor3 = PALETTE.AccentSoft
+        btn.Text = "กดเพื่อทำงาน"
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 11
+        btn.TextColor3 = PALETTE.TextPrimary
+        btn.Parent = row
+        round(btn, 7)
+        stroke(btn, PALETTE.BorderAccent, 1, 0.35)
 
-    -- 2. หน้า กล่องปลา
-    local secCoolerMain = createSection(tabCooler, "Main", 1)
-    addToggle(secCoolerMain, "ใส่ปลาที่ดีที่สุดอัตโนมัติ", nil, "AutoEquipBest", 1)
-    addToggle(secCoolerMain, "ฟิวส์ทั้งหมดอัตโนมัติ", nil, "AutoFuseAll", 2)
-    addSlider(secCoolerMain, "ขายทุก (วิ)", 5, 120, "SellInterval", 3)
-    addToggle(secCoolerMain, "ขายอัตโนมัติ", nil, "AutoSell", 4)
+        btn.MouseButton1Click:Connect(function()
+            btn.Text = "กำลังทำ..."
+            pcall(onClick)
+            task.delay(0.8, function()
+                if btn and btn.Parent then
+                    btn.Text = "สำเร็จ ✓"
+                    task.delay(0.8, function()
+                        if btn and btn.Parent then
+                            btn.Text = "กดเพื่อทำงาน"
+                        end
+                    end)
+                end
+            end)
+        end)
+    end
 
-    local secCoolerPotion = createSection(tabCooler, "ยา", 2)
-    addToggle(secCoolerPotion, "ซื้อยาอัตโนมัติ", nil, "AutoBuyPotion", 1)
-    addToggle(secCoolerPotion, "ใช้ยาอัตโนมัติ", nil, "AutoUsePotion", 2)
+    -- สร้าง 6 แท็บ
+    local pFish    = createPage("fish", "🐟", "ตกปลา", 1)
+    local pCooler  = createPage("cooler", "📦", "กล่องปลา", 2)
+    local pUpgrade = createPage("upgrade", "⬆️", "อัปเกรด", 3)
+    local pReward  = createPage("reward", "🎁", "รางวัล", 4)
+    local pArena   = createPage("arena", "⚔️", "อารีนา", 5)
+    local pSetting = createPage("setting", "⚙️", "ตั้งค่า", 6)
 
-    -- 3. หน้า อัปเกรด
-    local secUpgNet = createSection(tabUpgrade, "อวน", 1)
-    addToggle(secUpgNet, "ซื้ออวนขั้นถัดไปอัตโนมัติ", nil, "AutoUpgradeNet", 1)
+    -- 1. ตกปลา
+    local cFishMain = createCard(pFish, "Main • การจับปลา", "AUTO FARM", 1)
+    createToggle(cFishMain, "จับปลาอัตโนมัติ", "โยนอวน เล็งเป้าหมาย และยืนยันการจับต่อเนื่อง", "AutoCatch", 1)
+    createToggle(cFishMain, "ดึงอวนเมื่อเต็มอัตโนมัติ", "สั่ง ReelIn และเช็กสถานะ NetFull ต่อเนื่อง", "AutoReelFull", 2)
 
-    local secUpgSkill = createSection(tabUpgrade, "สกิลทรี", 2)
-    addToggle(secUpgSkill, "อัปเกรดสกิลทั้งหมดอัตโนมัติ", nil, "AutoUpgradeAllSkills", 1)
+    local cFishPad = createCard(pFish, "อื่น ๆ • เก็บเงินและแท่น", "PAD & CASH", 2)
+    createSlider(cFishPad, "รอบการเก็บเงิน/เช็กแท่น", 5, 120, " วิ", "CollectInterval", 1)
+    createToggle(cFishPad, "วาร์ปไปเหยียบแท่น", "ย้ายตัวละครไปยังแท่น/จุดเก็บเงินตามรอบที่ตั้ง", "WarpToPad", 2)
+    createToggle(cFishPad, "เก็บเงินอัตโนมัติ", "ยิง CollectPadReq เพื่อเก็บเงินและของตกหล่น", "AutoCollectCash", 3)
 
-    local secUpgFish = createSection(tabUpgrade, "การตกปลา", 3)
-    addToggle(secUpgFish, "อัปเกรดค่าพลังตกปลาทั้งหมด", nil, "AutoUpgradeAllFishing", 1)
+    local cFishEvt = createCard(pFish, "อีเวนต์ • บอสและรีเบิร์ธ", "BOSS & REBIRTH", 3)
+    createToggle(cFishEvt, "ยิงเมกาโลดอนอัตโนมัติ", "ตรวจจับ MegalodonLocal / BossEvent แล้วสั่งยิง", "AutoShootMeg", 1)
+    createToggle(cFishEvt, "ยิง Bloop อัตโนมัติ", "ตรวจจับ BloopLocal แล้วสั่งยิงอัตโนมัติ", "AutoShootBloop", 2)
+    createToggle(cFishEvt, "รีเบิร์ธอัตโนมัติ", "ส่ง RebirthRequest เมื่อถึงเงื่อนไข", "AutoRebirth", 3)
 
-    -- 4. หน้า รางวัล
-    local secRewardMain = createSection(tabReward, "Main", 1)
-    addToggle(secRewardMain, "รับรางวัล Index อัตโนมัติ", nil, "AutoClaimIndex", 1)
-    addToggle(secRewardMain, "หมุนวงล้ออัตโนมัติ", nil, "AutoSpin", 2)
-    addToggle(secRewardMain, "รับของขวัญออนไลน์ + รายวันอัตโนมัติ", nil, "AutoClaimDaily", 3)
-    addToggle(secRewardMain, "รับรางวัลเควสต์อัตโนมัติ", nil, "AutoClaimQuest", 4)
-    addToggle(secRewardMain, "ใส่ Trait ดีสุดอัตโนมัติ", nil, "AutoEquipTrait", 5)
-    addToggle(secRewardMain, "รับรางวัล Season Pass อัตโนมัติ", nil, "AutoClaimPass", 6)
+    -- 2. กล่องปลา
+    local cCoolMain = createCard(pCooler, "Main • จัดการปลาและขาย", "INVENTORY", 1)
+    createToggle(cCoolMain, "ใส่ปลาที่ดีที่สุดอัตโนมัติ", "เรียก BestSetup / PlaceFish อัตโนมัติ", "AutoEquipBest", 1)
+    createToggle(cCoolMain, "ฟิวส์ทั้งหมดอัตโนมัติ", "เรียก CoolerAction / HotbarAction สำหรับฟิวส์ปลา", "AutoFuseAll", 2)
+    createSlider(cCoolMain, "รอบการขายปลา", 5, 180, " วิ", "SellInterval", 3)
+    createToggle(cCoolMain, "ขายปลาอัตโนมัติ", "ยิง SellFish ตามรอบเวลาที่ตั้งไว้", "AutoSell", 4)
 
-    -- 5. หน้า อารีนา
-    local secArenaMain = createSection(tabArena, "Main", 1)
-    addToggle(secArenaMain, "ตีอารีนาอัตโนมัติ", "จัดทีม 3 ตัวพลังสูงสุดอัตโนมัติ", "AutoArena", 1)
+    local cCoolPot = createCard(pCooler, "ยา • บูสต์และโพชัน", "POTIONS", 2)
+    createToggle(cCoolPot, "ซื้อยาอัตโนมัติ", "เรียก Potions / BuyItem สำหรับเติมยา", "AutoBuyPotion", 1)
+    createToggle(cCoolPot, "ใช้ยาอัตโนมัติ", "เปิดใช้งานยาบูสต์ในคลังอัตโนมัติ", "AutoUsePotion", 2)
 
-    -- 6. หน้า ตั้งค่า
-    local secSetPerf = createSection(tabSetting, "Performance & Main", 1)
-    addToggle(secSetPerf, "กันหลุด AFK", nil, "AntiAFK", 1)
-    addToggle(secSetPerf, "โหมดสเปกต่ำ", nil, "LowGraphics", 2)
+    -- 3. อัปเกรด
+    local cUpg1 = createCard(pUpgrade, "อวน & ค่าสถานะ", "UPGRADES", 1)
+    createToggle(cUpg1, "ซื้ออวนขั้นถัดไปอัตโนมัติ", "เช็กและซื้อ Gear / อวนอัตโนมัติ", "AutoUpgradeNet", 1)
+    createToggle(cUpg1, "อัปเกรดสกิลทั้งหมดอัตโนมัติ", "อัปเกรด SkillTree อัตโนมัติ", "AutoUpgradeAllSkills", 2)
+    createToggle(cUpg1, "อัปเกรดค่าพลังตกปลาทั้งหมด", "อัปเกรดค่าสถานะการจับปลาอัตโนมัติ", "AutoUpgradeAllFishing", 3)
 
-    selectTab("fishing")
-    print("[UI] Mounted Modern Layout")
+    -- 4. รางวัล
+    local cRew1 = createCard(pReward, "Main • เก็บรางวัลและโบนัส", "REWARDS", 1)
+    createToggle(cRew1, "รับรางวัล Index อัตโนมัติ", "รับรางวัลสมุดปลา IndexPage", "AutoClaimIndex", 1)
+    createToggle(cRew1, "หมุนวงล้ออัตโนมัติ", "กดรับ/หมุนรางวัล Rewards อัตโนมัติ", "AutoSpin", 2)
+    createToggle(cRew1, "รับของขวัญออนไลน์ + รายวันอัตโนมัติ", "เก็บของขวัญสะสมเวลารายวัน", "AutoClaimDaily", 3)
+    createToggle(cRew1, "รับรางวัลเควสต์อัตโนมัติ", "เคลมรางวัล Challenge / เควสต์", "AutoClaimQuest", 4)
+    createToggle(cRew1, "ใส่ Trait ดีสุดอัตโนมัติ", "อัปเดต Trait ที่ดีที่สุด", "AutoEquipTrait", 5)
+    createToggle(cRew1, "รับรางวัล Season Pass อัตโนมัติ", "เคลมของรางวัล SeasonPass", "AutoClaimPass", 6)
+
+    -- 5. อารีนา
+    local cArena1 = createCard(pArena, "Main • โหมดต่อสู้อารีนา", "ARENA", 1)
+    createToggle(cArena1, "ตีอารีนาอัตโนมัติ", "เรียกใช้งานระบบ Arena อัตโนมัติ", "AutoArena", 1)
+
+    -- 6. ตั้งค่า
+    local cSet1 = createCard(pSetting, "ระบบป้องกันและประสิทธิภาพ", "SYSTEM", 1)
+    createToggle(cSet1, "กันหลุด AFK", "ส่งสัญญาณกันหลุดห้องอัตโนมัติ (แนะนำให้เปิด)", "AntiAFK", 1)
+    createToggle(cSet1, "โหมดสเปกต่ำ", "ลดรายละเอียดเอฟเฟกต์/เงาเพื่อเพิ่ม FPS", "LowGraphics", 2)
+    createActionBtn(cSet1, "สแกน Remote & โฟลเดอร์แมพ", "พิมพ์รายชื่อ Remote และวัตถุในเกมลง Console", function()
+        Config.ScanNow = true
+    end, 3)
+
+    activateTab("fish")
+    print("[UI] Mounted Pro Layout")
 end
 
 return UI

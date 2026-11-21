@@ -2,7 +2,7 @@ return {
     -- แท็บตกปลา
     AutoCatch = false,
     AutoReelFull = false,
-    CollectInterval = 30,
+    CollectInterval = 25,
     WarpToPad = false,
     AutoCollectCash = false,
     AutoShootMeg = false,
@@ -36,4 +36,5 @@ return {
     -- แท็บตั้งค่า
     AntiAFK = true,
     LowGraphics = false,
+    ScanNow = false,
 }
