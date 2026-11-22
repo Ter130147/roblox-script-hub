@@ -7,22 +7,21 @@ local LocalPlayer = Players.LocalPlayer
 local UI = {}
 
 local PALETTE = {
-    ShadowDeep = Color3.fromRGB(5, 5, 8),
-    WindowBase = Color3.fromRGB(12, 12, 16),
-    WindowTop = Color3.fromRGB(20, 19, 28),
-    CardBase = Color3.fromRGB(16, 16, 22),
-    RowBase = Color3.fromRGB(24, 24, 33),
-    RowHighlight = Color3.fromRGB(34, 33, 46),
-    Gold = Color3.fromRGB(245, 196, 83),
-    GoldBright = Color3.fromRGB(255, 224, 130),
-    GoldDark = Color3.fromRGB(150, 110, 32),
-    Accent = Color3.fromRGB(132, 86, 255),
-    OffTrack = Color3.fromRGB(46, 46, 58),
-    TextPrimary = Color3.fromRGB(248, 248, 255),
-    TextSecondary = Color3.fromRGB(165, 165, 182),
-    TextMuted = Color3.fromRGB(115, 115, 132),
+    ShadowDeep = Color3.fromRGB(6, 4, 5),
+    WindowBase = Color3.fromRGB(13, 12, 15),
+    WindowTop = Color3.fromRGB(22, 16, 20),
+    CardBase = Color3.fromRGB(17, 15, 19),
+    RowBase = Color3.fromRGB(26, 21, 25),
+    RowHighlight = Color3.fromRGB(38, 26, 31),
+    Red = Color3.fromRGB(225, 45, 68),
+    RedBright = Color3.fromRGB(255, 92, 112),
+    RedDark = Color3.fromRGB(115, 18, 30),
+    CrimsonDeep = Color3.fromRGB(72, 10, 18),
+    OffTrack = Color3.fromRGB(48, 42, 46),
+    TextPrimary = Color3.fromRGB(250, 248, 250),
+    TextSecondary = Color3.fromRGB(172, 158, 164),
+    TextMuted = Color3.fromRGB(122, 110, 116),
     Success = Color3.fromRGB(74, 222, 128),
-    Danger = Color3.fromRGB(215, 58, 78),
 }
 
 local function round(inst, r)
@@ -34,7 +33,7 @@ end
 
 local function stroke(inst, col, thick, trans)
     local s = Instance.new("UIStroke")
-    s.Color = col or PALETTE.Gold
+    s.Color = col or PALETTE.Red
     s.Thickness = thick or 1
     s.Transparency = trans or 0
     s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -116,19 +115,18 @@ function UI.init(Config, hubTitle)
     screenGui.Parent = playerGui
 
     -- ==========================================
-    -- 1. ปุ่มไอคอนย่อ 3D (TH) แบบนูนมีเงาและขอบแสงวิ่ง
+    -- 1. ปุ่มไอคอนย่อ 3D (Ter) ธีมดำ-แดง
     -- ==========================================
     local miniHolder = Instance.new("Frame")
     miniHolder.Name = "MiniIconHolder"
-    miniHolder.Size = UDim2.fromOffset(60, 64)
+    miniHolder.Size = UDim2.fromOffset(62, 66)
     miniHolder.Position = UDim2.new(0, 18, 0.25, 0)
     miniHolder.BackgroundTransparency = 1
     miniHolder.Visible = false
     miniHolder.Parent = screenGui
 
-    -- เงาฐาน 3D ด้านล่างปุ่มย่อ
     local miniShadow = Instance.new("Frame")
-    miniShadow.Size = UDim2.fromOffset(56, 56)
+    miniShadow.Size = UDim2.fromOffset(58, 58)
     miniShadow.Position = UDim2.fromOffset(2, 7)
     miniShadow.BackgroundColor3 = PALETTE.ShadowDeep
     miniShadow.BackgroundTransparency = 0.25
@@ -136,49 +134,47 @@ function UI.init(Config, hubTitle)
     miniShadow.Parent = miniHolder
     round(miniShadow, 14)
 
-    -- ขอบฐาน 3D สีทองเข้ม
     local miniExtrude = Instance.new("Frame")
-    miniExtrude.Size = UDim2.fromOffset(56, 56)
+    miniExtrude.Size = UDim2.fromOffset(58, 58)
     miniExtrude.Position = UDim2.fromOffset(2, 5)
-    miniExtrude.BackgroundColor3 = PALETTE.GoldDark
+    miniExtrude.BackgroundColor3 = PALETTE.RedDark
     miniExtrude.BorderSizePixel = 0
     miniExtrude.Parent = miniHolder
     round(miniExtrude, 14)
 
-    -- ตัวปุ่มย่อด้านบน
     local miniIcon = Instance.new("TextButton")
     miniIcon.Name = "MiniIconBtn"
-    miniIcon.Size = UDim2.fromOffset(56, 56)
+    miniIcon.Size = UDim2.fromOffset(58, 58)
     miniIcon.Position = UDim2.fromOffset(2, 1)
     miniIcon.BackgroundColor3 = PALETTE.WindowTop
     miniIcon.Text = ""
     miniIcon.AutoButtonColor = false
     miniIcon.Parent = miniHolder
     round(miniIcon, 14)
-    local miniStroke = stroke(miniIcon, PALETTE.Gold, 1.8, 0)
-    local miniStrokeGrad = addShimmerGradient(miniStroke, PALETTE.GoldDark, PALETTE.GoldBright, PALETTE.Accent)
+    local miniStroke = stroke(miniIcon, PALETTE.Red, 1.8, 0)
+    local miniStrokeGrad = addShimmerGradient(miniStroke, PALETTE.RedDark, PALETTE.RedBright, PALETTE.CrimsonDeep)
 
     local miniBadge = Instance.new("Frame")
-    miniBadge.Size = UDim2.fromOffset(40, 40)
+    miniBadge.Size = UDim2.fromOffset(42, 42)
     miniBadge.Position = UDim2.fromScale(0.5, 0.5)
     miniBadge.AnchorPoint = Vector2.new(0.5, 0.5)
-    miniBadge.BackgroundColor3 = PALETTE.Accent
+    miniBadge.BackgroundColor3 = PALETTE.Red
     miniBadge.BorderSizePixel = 0
     miniBadge.Parent = miniIcon
     round(miniBadge, 10)
-    local badgeGrad = addShimmerGradient(miniBadge, Color3.fromRGB(165, 115, 255), Color3.fromRGB(108, 64, 230), PALETTE.Gold)
+    stroke(miniBadge, PALETTE.RedBright, 1, 0.35)
+    local badgeGrad = addShimmerGradient(miniBadge, PALETTE.RedBright, PALETTE.Red, PALETTE.CrimsonDeep)
     badgeGrad.Rotation = 45
 
     local miniText = Instance.new("TextLabel")
     miniText.Size = UDim2.fromScale(1, 1)
     miniText.BackgroundTransparency = 1
-    miniText.Text = "TH"
+    miniText.Text = "Ter"
     miniText.Font = Enum.Font.GothamBlack
-    miniText.TextSize = 16
+    miniText.TextSize = 14
     miniText.TextColor3 = Color3.new(1, 1, 1)
     miniText.Parent = miniBadge
 
-    -- เอฟเฟกต์กดปุ่มย่อ 3D ยุบตัว
     miniIcon.MouseButton1Down:Connect(function()
         tween(miniIcon, 0.08, { Position = UDim2.fromOffset(2, 4) })
     end)
@@ -187,7 +183,7 @@ function UI.init(Config, hubTitle)
     end)
 
     -- ==========================================
-    -- 2. หน้าต่างหลัก 3D (Layered Depth + Shimmer)
+    -- 2. หน้าต่างหลัก 3D ธีมดำ-แดง
     -- ==========================================
     local mainWrapper = Instance.new("Frame")
     mainWrapper.Name = "MainWrapper"
@@ -197,7 +193,6 @@ function UI.init(Config, hubTitle)
     mainWrapper.BackgroundTransparency = 1
     mainWrapper.Parent = screenGui
 
-    -- ชั้นเงา 3D ลึกด้านหลัง
     local deepShadow = Instance.new("Frame")
     deepShadow.Size = UDim2.fromOffset(540, 328)
     deepShadow.Position = UDim2.fromOffset(6, 12)
@@ -207,16 +202,14 @@ function UI.init(Config, hubTitle)
     deepShadow.Parent = mainWrapper
     round(deepShadow, 15)
 
-    -- ชั้นความหนาขอบล่าง 3D (Extrusion Bevel)
     local bevelBase = Instance.new("Frame")
     bevelBase.Size = UDim2.fromOffset(540, 328)
     bevelBase.Position = UDim2.fromOffset(6, 8)
-    bevelBase.BackgroundColor3 = PALETTE.GoldDark
+    bevelBase.BackgroundColor3 = PALETTE.RedDark
     bevelBase.BorderSizePixel = 0
     bevelBase.Parent = mainWrapper
     round(bevelBase, 14)
 
-    -- ตัวหน้าต่างหลักด้านหน้า
     local main = Instance.new("Frame")
     main.Name = "MainWindow"
     main.Size = UDim2.fromOffset(540, 328)
@@ -227,22 +220,20 @@ function UI.init(Config, hubTitle)
     main.Parent = mainWrapper
     round(main, 14)
 
-    local mainStroke = stroke(main, PALETTE.Gold, 1.6, 0)
-    local mainStrokeGrad = addShimmerGradient(mainStroke, PALETTE.GoldDark, PALETTE.GoldBright, PALETTE.Accent)
+    local mainStroke = stroke(main, PALETTE.Red, 1.6, 0)
+    local mainStrokeGrad = addShimmerGradient(mainStroke, PALETTE.RedDark, PALETTE.RedBright, PALETTE.CrimsonDeep)
 
-    local gradBg = addShimmerGradient(main, Color3.fromRGB(25, 23, 36), Color3.fromRGB(14, 14, 19), Color3.fromRGB(19, 17, 26))
+    local gradBg = addShimmerGradient(main, Color3.fromRGB(30, 15, 20), Color3.fromRGB(14, 13, 17), Color3.fromRGB(24, 12, 16))
     gradBg.Rotation = 32
 
-    -- แสงไฮไลต์ขอบบนแบบกระจก 3D
     local topGloss = Instance.new("Frame")
     topGloss.Size = UDim2.new(1, -24, 0, 1)
     topGloss.Position = UDim2.fromOffset(12, 1)
-    topGloss.BackgroundColor3 = PALETTE.GoldBright
+    topGloss.BackgroundColor3 = PALETTE.RedBright
     topGloss.BackgroundTransparency = 0.45
     topGloss.BorderSizePixel = 0
     topGloss.Parent = main
 
-    -- แถบหัวหน้าต่าง (Topbar)
     local topbar = Instance.new("Frame")
     topbar.Name = "Topbar"
     topbar.Size = UDim2.new(1, 0, 0, 56)
@@ -254,63 +245,61 @@ function UI.init(Config, hubTitle)
     local topDivider = Instance.new("Frame")
     topDivider.Size = UDim2.new(1, -24, 0, 1)
     topDivider.Position = UDim2.new(0, 12, 1, -1)
-    topDivider.BackgroundColor3 = PALETTE.Gold
-    topDivider.BackgroundTransparency = 0.65
+    topDivider.BackgroundColor3 = PALETTE.Red
+    topDivider.BackgroundTransparency = 0.6
     topDivider.BorderSizePixel = 0
     topDivider.Parent = topbar
 
-    -- โลโก้ TH แบบ 3D ใน Topbar
     local logoShadow = Instance.new("Frame")
-    logoShadow.Size = UDim2.fromOffset(36, 36)
-    logoShadow.Position = UDim2.fromOffset(14, 12)
-    logoShadow.BackgroundColor3 = PALETTE.GoldDark
+    logoShadow.Size = UDim2.fromOffset(38, 38)
+    logoShadow.Position = UDim2.fromOffset(14, 11)
+    logoShadow.BackgroundColor3 = PALETTE.RedDark
     logoShadow.BorderSizePixel = 0
     logoShadow.Parent = topbar
     round(logoShadow, 9)
 
     local logoBox = Instance.new("Frame")
-    logoBox.Size = UDim2.fromOffset(36, 36)
-    logoBox.Position = UDim2.fromOffset(14, 9)
-    logoBox.BackgroundColor3 = PALETTE.Accent
+    logoBox.Size = UDim2.fromOffset(38, 38)
+    logoBox.Position = UDim2.fromOffset(14, 8)
+    logoBox.BackgroundColor3 = PALETTE.Red
     logoBox.BorderSizePixel = 0
     logoBox.Parent = topbar
     round(logoBox, 9)
-    stroke(logoBox, PALETTE.GoldBright, 1, 0.35)
-    local logoGrad = addShimmerGradient(logoBox, Color3.fromRGB(162, 110, 255), Color3.fromRGB(115, 70, 235), PALETTE.Gold)
+    stroke(logoBox, PALETTE.RedBright, 1, 0.35)
+    local logoGrad = addShimmerGradient(logoBox, PALETTE.RedBright, PALETTE.Red, PALETTE.CrimsonDeep)
     logoGrad.Rotation = 45
 
     local logoLbl = Instance.new("TextLabel")
     logoLbl.Size = UDim2.fromScale(1, 1)
     logoLbl.BackgroundTransparency = 1
-    logoLbl.Text = "TH"
+    logoLbl.Text = "Ter"
     logoLbl.Font = Enum.Font.GothamBlack
-    logoLbl.TextSize = 14
+    logoLbl.TextSize = 13
     logoLbl.TextColor3 = Color3.new(1, 1, 1)
     logoLbl.Parent = logoBox
 
     local hubTitleLbl = Instance.new("TextLabel")
     hubTitleLbl.Size = UDim2.fromOffset(300, 20)
-    hubTitleLbl.Position = UDim2.fromOffset(60, 9)
+    hubTitleLbl.Position = UDim2.fromOffset(62, 9)
     hubTitleLbl.BackgroundTransparency = 1
     hubTitleLbl.Text = titleText .. "  •  NET A FISH"
     hubTitleLbl.Font = Enum.Font.GothamBlack
     hubTitleLbl.TextSize = 14
-    hubTitleLbl.TextColor3 = PALETTE.GoldBright
+    hubTitleLbl.TextColor3 = PALETTE.RedBright
     hubTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     hubTitleLbl.Parent = topbar
 
     local hubSubLbl = Instance.new("TextLabel")
     hubSubLbl.Size = UDim2.fromOffset(300, 16)
-    hubSubLbl.Position = UDim2.fromOffset(60, 30)
+    hubSubLbl.Position = UDim2.fromOffset(62, 30)
     hubSubLbl.BackgroundTransparency = 1
-    hubSubLbl.Text = "3D Edition  •  Auto MiniGame & Scanner"
+    hubSubLbl.Text = "3D Red Edition  •  Auto MiniGame & Scanner"
     hubSubLbl.Font = Enum.Font.Gotham
     hubSubLbl.TextSize = 11
     hubSubLbl.TextColor3 = PALETTE.TextSecondary
     hubSubLbl.TextXAlignment = Enum.TextXAlignment.Left
     hubSubLbl.Parent = topbar
 
-    -- ปุ่มควบคุมหน้าต่างแบบ 3D กดยุบตัวได้
     local function make3DWinBtn(txt, offsetX, isClose)
         local holder = Instance.new("Frame")
         holder.Size = UDim2.fromOffset(34, 36)
@@ -322,7 +311,7 @@ function UI.init(Config, hubTitle)
         local base = Instance.new("Frame")
         base.Size = UDim2.fromOffset(34, 32)
         base.Position = UDim2.fromOffset(0, 4)
-        base.BackgroundColor3 = isClose and Color3.fromRGB(115, 25, 38) or PALETTE.GoldDark
+        base.BackgroundColor3 = isClose and PALETTE.CrimsonDeep or PALETTE.RedDark
         base.BorderSizePixel = 0
         base.ZIndex = 10
         base.Parent = holder
@@ -340,11 +329,11 @@ function UI.init(Config, hubTitle)
         btn.ZIndex = 11
         btn.Parent = holder
         round(btn, 8)
-        stroke(btn, isClose and PALETTE.Danger or PALETTE.Gold, 1, 0.45)
+        stroke(btn, isClose and PALETTE.RedBright or PALETTE.Red, 1, 0.45)
 
         btn.MouseEnter:Connect(function()
             tween(btn, 0.12, {
-                BackgroundColor3 = isClose and PALETTE.Danger or PALETTE.RowHighlight,
+                BackgroundColor3 = isClose and PALETTE.Red or PALETTE.RowHighlight,
             })
         end)
         btn.MouseLeave:Connect(function()
@@ -389,7 +378,6 @@ function UI.init(Config, hubTitle)
 
     makeDraggable(topbar, mainWrapper)
 
-    -- พื้นที่การ์ดด้านในแบบ 3D
     local content = Instance.new("Frame")
     content.Name = "Content"
     content.Size = UDim2.new(1, -28, 1, -80)
@@ -398,7 +386,7 @@ function UI.init(Config, hubTitle)
     content.BorderSizePixel = 0
     content.Parent = main
     round(content, 12)
-    stroke(content, PALETTE.Gold, 1, 0.72)
+    stroke(content, PALETTE.Red, 1, 0.72)
 
     local pad = Instance.new("UIPadding")
     pad.PaddingTop = UDim.new(0, 12)
@@ -434,7 +422,7 @@ function UI.init(Config, hubTitle)
         card.BorderSizePixel = 0
         card.Parent = wrap
         round(card, 9)
-        stroke(card, PALETTE.Gold, 1, 0.78)
+        stroke(card, PALETTE.Red, 1, 0.78)
         return card
     end
 
@@ -476,12 +464,12 @@ function UI.init(Config, hubTitle)
     local sw = Instance.new("TextButton")
     sw.Size = UDim2.fromOffset(46, 24)
     sw.Position = UDim2.new(1, -58, 0.5, -12)
-    sw.BackgroundColor3 = Config.AutoMiniGame and PALETTE.Gold or PALETTE.OffTrack
+    sw.BackgroundColor3 = Config.AutoMiniGame and PALETTE.Red or PALETTE.OffTrack
     sw.Text = ""
     sw.AutoButtonColor = false
     sw.Parent = row1
     round(sw, 12)
-    stroke(sw, PALETTE.GoldBright, 1, 0.55)
+    stroke(sw, PALETTE.RedBright, 1, 0.55)
 
     local knob = Instance.new("Frame")
     knob.Size = UDim2.fromOffset(18, 18)
@@ -496,7 +484,7 @@ function UI.init(Config, hubTitle)
         local on = Config.AutoMiniGame
         tag1.Text = on and "ON" or "OFF"
         tag1.TextColor3 = on and PALETTE.Success or PALETTE.TextMuted
-        tween(sw, 0.14, { BackgroundColor3 = on and PALETTE.Gold or PALETTE.OffTrack })
+        tween(sw, 0.14, { BackgroundColor3 = on and PALETTE.Red or PALETTE.OffTrack })
         tween(knob, 0.14, { Position = on and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3) })
     end)
 
@@ -524,7 +512,7 @@ function UI.init(Config, hubTitle)
     valLbl.Text = string.format("%.2f วิ", cur)
     valLbl.Font = Enum.Font.GothamBlack
     valLbl.TextSize = 12
-    valLbl.TextColor3 = PALETTE.GoldBright
+    valLbl.TextColor3 = PALETTE.RedBright
     valLbl.TextXAlignment = Enum.TextXAlignment.Right
     valLbl.Parent = row2
 
@@ -540,16 +528,16 @@ function UI.init(Config, hubTitle)
     local ratio = math.clamp((cur - minV) / (maxV - minV), 0, 1)
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new(ratio, 0, 1, 0)
-    fill.BackgroundColor3 = PALETTE.Gold
+    fill.BackgroundColor3 = PALETTE.Red
     fill.BorderSizePixel = 0
     fill.Parent = track
     round(fill, 4)
-    addShimmerGradient(fill, PALETTE.GoldDark, PALETTE.GoldBright, PALETTE.Accent)
+    addShimmerGradient(fill, PALETTE.RedDark, PALETTE.RedBright, PALETTE.Red)
 
     local thumb = Instance.new("Frame")
     thumb.Size = UDim2.fromOffset(16, 16)
     thumb.Position = UDim2.new(ratio, -8, 0.5, -8)
-    thumb.BackgroundColor3 = PALETTE.GoldBright
+    thumb.BackgroundColor3 = PALETTE.RedBright
     thumb.BorderSizePixel = 0
     thumb.Parent = track
     round(thumb, 8)
@@ -583,7 +571,7 @@ function UI.init(Config, hubTitle)
         end
     end)
 
-    -- แถวที่ 3: ปุ่มสแกนเกมแบบ 3D กดยุบตัวได้
+    -- แถวที่ 3: ปุ่มสแกนเกมแบบ 3D ธีมดำ-แดง
     local row3 = make3DRow(3, 56)
 
     local lbl3 = Instance.new("TextLabel")
@@ -617,7 +605,7 @@ function UI.init(Config, hubTitle)
     local scanBase = Instance.new("Frame")
     scanBase.Size = UDim2.fromOffset(134, 32)
     scanBase.Position = UDim2.fromOffset(0, 4)
-    scanBase.BackgroundColor3 = PALETTE.GoldDark
+    scanBase.BackgroundColor3 = PALETTE.CrimsonDeep
     scanBase.BorderSizePixel = 0
     scanBase.Parent = scanHolder
     round(scanBase, 8)
@@ -625,7 +613,7 @@ function UI.init(Config, hubTitle)
     local scanBtn = Instance.new("TextButton")
     scanBtn.Size = UDim2.fromOffset(134, 32)
     scanBtn.Position = UDim2.fromOffset(0, 0)
-    scanBtn.BackgroundColor3 = PALETTE.Accent
+    scanBtn.BackgroundColor3 = PALETTE.Red
     scanBtn.Text = "สแกนเกม"
     scanBtn.Font = Enum.Font.GothamBlack
     scanBtn.TextSize = 12
@@ -633,8 +621,8 @@ function UI.init(Config, hubTitle)
     scanBtn.AutoButtonColor = false
     scanBtn.Parent = scanHolder
     round(scanBtn, 8)
-    stroke(scanBtn, PALETTE.GoldBright, 1, 0.35)
-    addShimmerGradient(scanBtn, Color3.fromRGB(150, 98, 255), Color3.fromRGB(102, 58, 215), PALETTE.GoldDark)
+    stroke(scanBtn, PALETTE.RedBright, 1, 0.35)
+    addShimmerGradient(scanBtn, PALETTE.RedBright, PALETTE.Red, PALETTE.RedDark)
 
     scanBtn.MouseButton1Down:Connect(function()
         tween(scanBtn, 0.06, { Position = UDim2.fromOffset(0, 3) })
@@ -658,7 +646,6 @@ function UI.init(Config, hubTitle)
         end)
     end)
 
-    -- ลูปหมุนแสง Shimmer ขอบทอง-ม่วงอัตโนมัติ
     local rot = 0
     local animConn
     animConn = RunService.RenderStepped:Connect(function(dt)
@@ -668,12 +655,12 @@ function UI.init(Config, hubTitle)
             end
             return
         end
-        rot = (rot + dt * 75) % 360
+        rot = (rot + dt * 80) % 360
         mainStrokeGrad.Rotation = rot
         miniStrokeGrad.Rotation = -rot
     end)
 
-    print("[UI] Mounted 3D Dark & Gold Edition")
+    print("[UI] Mounted 3D Black & Red Edition (Ter)")
 end
 
 return UI
