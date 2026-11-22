@@ -324,81 +324,101 @@ local function tryPlayFishChaosGame(mg, Config)
 end
 
 local function tryPlayMemoryBaitGame(mg, Config)
-    local yourTurn = false
-    local choices = {}
-    local orderNames = { "worm", "shrimp", "cricket", "minnow" }
+local yourTurn = false
+local choices = {}
+local orderNames = { "WORM", "SHRIMP", "CRICKET", "MINNOW" }
+local memKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four }
 
-    for _, obj in ipairs(mg:GetDescendants()) do
-        if obj:IsA("GuiObject") and obj.Visible then
-            local txt = ""
-            if obj:IsA("TextLabel") or obj:IsA("TextButton") then
-                txt = obj.Text or ""
-            end
+for _, obj in ipairs(mg:GetDescendants()) do
+if obj:IsA("GuiObject") and obj.Visible then
+local txt = ""
+if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+txt = obj.Text or ""
+end
 
-            if string.find(txt, "ถึงตาคุณ", 1, true) then
-                yourTurn = true
-            end
+local lowTxt = string.lower(txt)
+if string.find(txt, "ถึงตาคุณ", 1, true)
+or string.find(lowTxt, "your turn", 1, true)
+or string.find(lowTxt, "repeat the order", 1, true)
+then
+yourTurn = true
+end
 
-            local upperTxt = string.upper(txt)
-            for idx, keyWord in ipairs(orderNames) do
-                if upperTxt == string.upper(keyWord) then
-                    local card = obj.Parent and obj.Parent:IsA("GuiObject") and obj.Parent or obj
-                    local btn = card:IsA("GuiButton") and card or card:FindFirstChildWhichIsA("GuiButton", true)
-                    choices[idx] = {
-                        index = idx,
-                        name = keyWord,
-                        target = btn or card,
-                    }
-                end
-            end
-        end
+local upperTxt = string.upper(txt):match("^%s*(.-)%s*$") or ""
+for idx, keyWord in ipairs(orderNames) do
+if upperTxt == keyWord then
+    local card = obj.Parent and obj.Parent:IsA("GuiObject") and obj.Parent or obj
+    local btn = card:IsA("GuiButton") and card or card:FindFirstChildWhichIsA("GuiButton", true)
+    choices[idx] = {
+        index = idx,
+        name = keyWord,
+        card = card,
+        target = btn or card,
+    }
+end
+end
+end
+end
+
+local litIdx = nil
+for idx = 1, 4 do
+local item = choices[idx]
+local c = item and item.card
+if c and c.Visible then
+local bg = c.BackgroundColor3
+local brightness = (bg.R + bg.G + bg.B) / 3
+local highlighted = brightness > 0.82 or c.BackgroundTransparency < 0.08
+
+if not highlighted then
+for _, d in ipairs(c:GetDescendants()) do
+    if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.2 then
+        highlighted = true
+        break
+    elseif d:IsA("UIScale") and d.Scale > 1.04 then
+        highlighted = true
+        break
     end
+end
+end
 
-    local litIdx = nil
-    for idx = 1, 4 do
-        local item = choices[idx]
-        local t = item and item.target
-        if t and t.Visible then
-            local bg = t.BackgroundColor3
-            if ((bg.R + bg.G + bg.B) / 3) > 0.85 or t.BackgroundTransparency < 0.05 then
-                litIdx = idx
-                break
-            end
-            for _, st in ipairs(t:GetDescendants()) do
-                if st:IsA("UIStroke") and st.Enabled and st.Thickness >= 2.5 then
-                    litIdx = idx
-                    break
-                end
-            end
-            if litIdx then
-                break
-            end
-        end
-    end
+if highlighted then
+litIdx = idx
+break
+end
+end
+end
 
-    if not yourTurn then
-        if litIdx and litIdx ~= lastHighlightedKey then
-            lastHighlightedKey = litIdx
-            table.insert(sequenceQueue, litIdx)
-        elseif not litIdx then
-            lastHighlightedKey = nil
-        end
-        return
-    end
+if not yourTurn then
+if litIdx and litIdx ~= lastHighlightedKey then
+lastHighlightedKey = litIdx
+table.insert(sequenceQueue, litIdx)
+elseif not litIdx then
+lastHighlightedKey = nil
+end
+return
+end
 
-    local spd = tonumber(Config and Config.MiniGameSpeed) or 0.20
-    if tick() - lastActionTime < math.clamp(spd, 0.15, 1.50) then
-        return
-    end
+local spd = tonumber(Config and Config.MiniGameSpeed) or 0.15
+if tick() - lastActionTime < math.clamp(spd, 0.10, 1.50) then
+return
+end
 
-    if #sequenceQueue > 0 then
-        local nextIdx = table.remove(sequenceQueue, 1)
-        local targetItem = choices[nextIdx]
-        if targetItem and targetItem.target then
-            lastActionTime = tick()
-            clickInsideMiniGame(targetItem.target)
-        end
-    end
+if #sequenceQueue > 0 then
+local nextIdx = table.remove(sequenceQueue, 1)
+local targetItem = choices[nextIdx]
+if targetItem and targetItem.target then
+lastActionTime = tick()
+clickInsideMiniGame(targetItem.target)
+pcall(function()
+local kc = memKeys[nextIdx]
+if kc then
+    VirtualInputManager:SendKeyEvent(true, kc, false, game)
+    task.wait(0.015)
+    VirtualInputManager:SendKeyEvent(false, kc, false, game)
+end
+end)
+end
+end
 end
 
 local function stepMiniGame(Config)
