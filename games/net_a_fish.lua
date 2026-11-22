@@ -1,4 +1,3 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -7,9 +6,10 @@ local started = false
 
 local sequenceQueue = {}
 local lastHighlightedKey = nil
-local lastReplayTime = 0
+local lastActionTime = 0
 
 local function scanGameStructure()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
     print("=== 1. REMOTES IN REPLICATEDSTORAGE ===")
     local r = ReplicatedStorage:FindFirstChild("Remotes")
     if r then
@@ -51,65 +51,7 @@ local function getMiniGameGui()
     return nil
 end
 
-local function parseMiniGameGui(mg)
-    local yourTurn = false
-    local choices = {}
-    local orderNames = { "worm", "shrimp", "cricket", "minnow" }
-
-    for _, obj in ipairs(mg:GetDescendants()) do
-        if obj:IsA("GuiObject") and obj.Visible then
-            local txt = ""
-            if obj:IsA("TextLabel") or obj:IsA("TextButton") then
-                txt = obj.Text
-            end
-
-            if string.find(txt, "ถึงตาคุณ", 1, true) then
-                yourTurn = true
-            end
-
-            local lowerTxt = string.lower(txt)
-            for idx, keyWord in ipairs(orderNames) do
-                if lowerTxt == keyWord then
-                    local btn = obj:IsA("GuiButton") and obj or obj:FindFirstChildWhichIsA("GuiButton", true)
-                    if not btn and obj.Parent then
-                        btn = obj.Parent:IsA("GuiButton") and obj.Parent or obj.Parent:FindFirstChildWhichIsA("GuiButton", true)
-                    end
-                    if btn and btn.Visible and btn.Active then
-                        choices[idx] = {
-                            index = idx,
-                            name = keyWord,
-                            button = btn,
-                        }
-                    end
-                end
-            end
-        end
-    end
-
-    return yourTurn, choices
-end
-
-local function detectHighlightedChoice(choices)
-    for idx = 1, 4 do
-        local item = choices[idx]
-        local btn = item and item.button
-        if btn and btn.Visible then
-            local bg = btn.BackgroundColor3
-            local brightness = (bg.R + bg.G + bg.B) / 3
-            if brightness > 0.85 or btn.BackgroundTransparency < 0.05 then
-                return idx
-            end
-            for _, st in ipairs(btn:GetDescendants()) do
-                if st:IsA("UIStroke") and st.Enabled and st.Thickness >= 3 then
-                    return idx
-                end
-            end
-        end
-    end
-    return nil
-end
-
-local function fireButtonInsideMiniGame(btn)
+local function fireGuiBtn(btn)
     if not btn or not btn.Visible or not btn.Active then
         return
     end
@@ -125,16 +67,117 @@ local function fireButtonInsideMiniGame(btn)
     end)
 end
 
-local function stepMiniGame(Config)
-    local mg = getMiniGameGui()
-    if not mg then
-        sequenceQueue = {}
-        lastHighlightedKey = nil
-        return
+local function findReelMiniGame(mg)
+    local reelBtn = nil
+    local greenZone = nil
+    local needle = nil
+
+    for _, obj in ipairs(mg:GetDescendants()) do
+        if obj:IsA("GuiObject") and obj.Visible then
+            if obj:IsA("TextButton") and string.find(string.upper(obj.Text), "REEL", 1, true) then
+                reelBtn = obj
+            elseif obj:IsA("ImageButton") and string.find(string.lower(obj.Name), "reel", 1, true) then
+                reelBtn = obj
+            end
+
+            local nLower = string.lower(obj.Name)
+            if string.find(nLower, "needle", 1, true) or string.find(nLower, "pointer", 1, true) or string.find(nLower, "marker", 1, true) then
+                if obj.AbsoluteSize.X <= 24 and obj.AbsoluteSize.Y >= 16 then
+                    needle = obj
+                end
+            end
+
+            if obj:IsA("Frame") or obj:IsA("ImageLabel") then
+                local c = obj.BackgroundColor3
+                if (c.G > 0.55 and c.R < 0.45) or string.find(nLower, "green", 1, true) or string.find(nLower, "zone", 1, true) or string.find(nLower, "target", 1, true) then
+                    if obj.AbsoluteSize.X > 12 and obj.AbsoluteSize.X < 400 then
+                        greenZone = obj
+                    end
+                end
+            end
+        end
     end
 
-    local yourTurn, choices = parseMiniGameGui(mg)
-    local litIdx = detectHighlightedChoice(choices)
+    return reelBtn, needle, greenZone
+end
+
+local function tryPlayReelGame(mg, Config)
+    local reelBtn, needle, greenZone = findReelMiniGame(mg)
+    if not reelBtn then
+        return false
+    end
+
+    local spd = tonumber(Config and Config.MiniGameSpeed) or 0.15
+    if tick() - lastActionTime < math.clamp(spd, 0.08, 1.0) then
+        return true
+    end
+
+    if needle and greenZone then
+        local nCenter = needle.AbsolutePosition.X + (needle.AbsoluteSize.X * 0.5)
+        local zMin = greenZone.AbsolutePosition.X - 4
+        local zMax = greenZone.AbsolutePosition.X + greenZone.AbsoluteSize.X + 4
+        if nCenter >= zMin and nCenter <= zMax then
+            lastActionTime = tick()
+            fireGuiBtn(reelBtn)
+        end
+    elseif not needle then
+        lastActionTime = tick()
+        fireGuiBtn(reelBtn)
+    end
+
+    return true
+end
+
+local function tryPlayMemoryBaitGame(mg, Config)
+    local yourTurn = false
+    local choices = {}
+    local orderNames = { "worm", "shrimp", "cricket", "minnow" }
+
+    for _, obj in ipairs(mg:GetDescendants()) do
+        if obj:IsA("GuiObject") and obj.Visible then
+            local txt = ""
+            if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+                txt = obj.Text
+            end
+            if string.find(txt, "ถึงตาคุณ", 1, true) then
+                yourTurn = true
+            end
+            local lowerTxt = string.lower(txt)
+            for idx, keyWord in ipairs(orderNames) do
+                if lowerTxt == keyWord then
+                    local btn = obj:IsA("GuiButton") and obj or obj:FindFirstChildWhichIsA("GuiButton", true)
+                    if not btn and obj.Parent then
+                        btn = obj.Parent:IsA("GuiButton") and obj.Parent or obj.Parent:FindFirstChildWhichIsA("GuiButton", true)
+                    end
+                    if btn and btn.Visible and btn.Active then
+                        choices[idx] = { index = idx, name = keyWord, button = btn }
+                    end
+                end
+            end
+        end
+    end
+
+    local litIdx = nil
+    for idx = 1, 4 do
+        local item = choices[idx]
+        local btn = item and item.button
+        if btn and btn.Visible then
+            local bg = btn.BackgroundColor3
+            if ((bg.R + bg.G + bg.B) / 3) > 0.85 or btn.BackgroundTransparency < 0.05 then
+                litIdx = idx
+                break
+            end
+            for _, st in ipairs(btn:GetDescendants()) do
+                if st:IsA("UIStroke") and st.Enabled and st.Thickness >= 3 then
+                    litIdx = idx
+                    break
+                end
+            end
+            if litIdx then
+                break
+            end
+        end
+    end
 
     if not yourTurn then
         if litIdx and litIdx ~= lastHighlightedKey then
@@ -147,7 +190,7 @@ local function stepMiniGame(Config)
     end
 
     local spd = tonumber(Config and Config.MiniGameSpeed) or 0.20
-    if tick() - lastReplayTime < math.clamp(spd, 0.15, 1.50) then
+    if tick() - lastActionTime < math.clamp(spd, 0.15, 1.50) then
         return
     end
 
@@ -155,9 +198,23 @@ local function stepMiniGame(Config)
         local nextIdx = table.remove(sequenceQueue, 1)
         local targetItem = choices[nextIdx]
         if targetItem and targetItem.button then
-            lastReplayTime = tick()
-            fireButtonInsideMiniGame(targetItem.button)
+            lastActionTime = tick()
+            fireGuiBtn(targetItem.button)
         end
+    end
+end
+
+local function stepMiniGame(Config)
+    local mg = getMiniGameGui()
+    if not mg then
+        sequenceQueue = {}
+        lastHighlightedKey = nil
+        return
+    end
+
+    local handledReel = tryPlayReelGame(mg, Config)
+    if not handledReel then
+        tryPlayMemoryBaitGame(mg, Config)
     end
 end
 
@@ -176,7 +233,7 @@ function GameModule.init(Config, Utils)
 
             if Config and Config.AutoMiniGame then
                 pcall(stepMiniGame, Config)
-                task.wait(0.06)
+                task.wait(0.03)
             else
                 sequenceQueue = {}
                 lastHighlightedKey = nil
@@ -185,7 +242,7 @@ function GameModule.init(Config, Utils)
         end
     end)
 
-    print("[Net a Fish] โหลดโหมด MiniGameUI เฉพาะหน้าต่างมินิเกมเรียบร้อย")
+    print("[Net a Fish] โหลดโหมด MiniGameUI รองรับ REEL! และช่วยความจำเหยื่อเรียบร้อย")
 end
 
 return GameModule
