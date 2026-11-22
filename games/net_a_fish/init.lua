@@ -118,10 +118,17 @@ local function getMiniGameGui()
     return nil
 end
 
-local function getMiniGameArea(mg)
-    local win = mg:FindFirstChild("Window")
-    local body = win and win:FindFirstChild("Body")
-    return (body and body:FindFirstChild("Area")) or mg
+local function getActiveMiniGameAreas(mg)
+    local areas = {}
+    for _, d in ipairs(mg:GetDescendants()) do
+        if d:IsA("GuiObject") and d.Name == "Area" and d.Visible then
+            table.insert(areas, d)
+        end
+    end
+    if #areas == 0 then
+        table.insert(areas, mg)
+    end
+    return areas
 end
 
 local function getHeaderTitle(mg)
@@ -144,21 +151,26 @@ local function tryClickPlayInMiniGame(mg)
 
     for _, obj in ipairs(mg:GetDescendants()) do
         if obj:IsA("GuiObject") and obj.Visible then
+            local nLower = string.lower(obj.Name)
             local txt = ""
             if obj:IsA("TextButton") or obj:IsA("TextLabel") then
                 txt = obj.Text or ""
             end
             local low = string.lower(txt)
-            if string.find(low, "play", 1, true)
-                or string.find(txt, "เล่น", 1, true)
-                or string.find(txt, "เข้าร่วม", 1, true)
-                or string.find(txt, "ยอมรับ", 1, true)
-            then
+
+            local isPlayBtn = string.find(nLower, "playbutton", 1, true) ~= nil
+                or string.find(low, "play", 1, true) ~= nil
+                or string.find(txt, "เล่น", 1, true) ~= nil
+                or string.find(txt, "เข้าร่วม", 1, true) ~= nil
+                or string.find(txt, "ยอมรับ", 1, true) ~= nil
+
+            if isPlayBtn then
                 local target = obj:IsA("GuiButton") and obj
                     or obj:FindFirstAncestorWhichIsA("GuiButton")
                     or (obj.Parent and obj.Parent:IsA("GuiObject") and obj.Parent)
                 if target and not containsDangerText(target.Parent) then
                     lastAcceptTime = tick()
+                    print("[MiniGame] กดปุ่มเริ่มรอบ:", target.Name, "|", txt)
                     clickInsideMiniGame(target)
                     return true
                 end
@@ -170,47 +182,49 @@ end
 
 -- [มินิเกมที่ 1] REEL!
 local function tryPlayReelGame(mg, Config, allText)
-    local area = getMiniGameArea(mg)
+    local areas = getActiveMiniGameAreas(mg)
     local isReelMode = string.find(allText, "REEL", 1, true) ~= nil
     local reelBtn = nil
     local greenZone = nil
     local needle = nil
 
-    for _, obj in ipairs(area:GetDescendants()) do
-        if obj:IsA("GuiObject") and obj.Visible then
-            local nLower = string.lower(obj.Name)
-            if obj:IsA("GuiButton") and (string.find(nLower, "reel", 1, true) or string.find(nLower, "tap", 1, true) or string.find(nLower, "btn", 1, true)) then
-                if not containsDangerText(obj) then
-                    reelBtn = obj
+    for _, area in ipairs(areas) do
+        for _, obj in ipairs(area:GetDescendants()) do
+            if obj:IsA("GuiObject") and obj.Visible then
+                local nLower = string.lower(obj.Name)
+                if obj:IsA("GuiButton") and (string.find(nLower, "reel", 1, true) or string.find(nLower, "tap", 1, true) or string.find(nLower, "btn", 1, true)) then
+                    if not containsDangerText(obj) then
+                        reelBtn = obj
+                    end
+                elseif (obj:IsA("TextLabel") or obj:IsA("TextButton")) and string.find(string.upper(obj.Text or ""), "REEL", 1, true) then
+                    local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
+                    if btn and not containsDangerText(btn) then
+                        reelBtn = btn
+                    end
                 end
-            elseif (obj:IsA("TextLabel") or obj:IsA("TextButton")) and string.find(string.upper(obj.Text or ""), "REEL", 1, true) then
-                local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
-                if btn and not containsDangerText(btn) then
-                    reelBtn = btn
-                end
-            end
 
-            if string.find(nLower, "needle", 1, true)
-                or string.find(nLower, "pointer", 1, true)
-                or string.find(nLower, "marker", 1, true)
-                or string.find(nLower, "cursor", 1, true)
-                or string.find(nLower, "indicator", 1, true)
-            then
-                if obj.AbsoluteSize.X <= 28 and obj.AbsoluteSize.Y >= 12 then
-                    needle = obj
-                end
-            end
-
-            if obj:IsA("Frame") or obj:IsA("ImageLabel") then
-                local c = obj.BackgroundColor3
-                if (c.G > 0.52 and c.R < 0.48)
-                    or string.find(nLower, "green", 1, true)
-                    or string.find(nLower, "zone", 1, true)
-                    or string.find(nLower, "target", 1, true)
-                    or string.find(nLower, "sweet", 1, true)
+                if string.find(nLower, "needle", 1, true)
+                    or string.find(nLower, "pointer", 1, true)
+                    or string.find(nLower, "marker", 1, true)
+                    or string.find(nLower, "cursor", 1, true)
+                    or string.find(nLower, "indicator", 1, true)
                 then
-                    if obj.AbsoluteSize.X >= 10 and obj.AbsoluteSize.X <= 420 then
-                        greenZone = obj
+                    if obj.AbsoluteSize.X <= 28 and obj.AbsoluteSize.Y >= 12 then
+                        needle = obj
+                    end
+                end
+
+                if obj:IsA("Frame") or obj:IsA("ImageLabel") then
+                    local c = obj.BackgroundColor3
+                    if (c.G > 0.52 and c.R < 0.48)
+                        or string.find(nLower, "green", 1, true)
+                        or string.find(nLower, "zone", 1, true)
+                        or string.find(nLower, "target", 1, true)
+                        or string.find(nLower, "sweet", 1, true)
+                    then
+                        if obj.AbsoluteSize.X >= 10 and obj.AbsoluteSize.X <= 420 then
+                            greenZone = obj
+                        end
                     end
                 end
             end
@@ -265,32 +279,34 @@ local function tryPlayFishChaosGame(mg, Config, allText)
         return true
     end
 
-    local area = getMiniGameArea(mg)
+    local areas = getActiveMiniGameAreas(mg)
     local laneKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five }
     local laneCenters = {}
     local laneButtons = {}
 
-    for idx = 1, 5 do
-        local namedLane = area:FindFirstChild("Lane" .. tostring(idx), true) or area:FindFirstChild("Slot" .. tostring(idx), true)
-        if namedLane and namedLane:IsA("GuiObject") and namedLane.Visible then
-            laneCenters[idx] = namedLane.AbsolutePosition.X + (namedLane.AbsoluteSize.X * 0.5)
-            local btn = namedLane:IsA("GuiButton") and namedLane or namedLane:FindFirstChildWhichIsA("GuiButton", true)
-            if btn then
-                laneButtons[idx] = btn
+    for _, area in ipairs(areas) do
+        for idx = 1, 5 do
+            local namedLane = area:FindFirstChild("Lane" .. tostring(idx), true) or area:FindFirstChild("Slot" .. tostring(idx), true)
+            if namedLane and namedLane:IsA("GuiObject") and namedLane.Visible then
+                laneCenters[idx] = namedLane.AbsolutePosition.X + (namedLane.AbsoluteSize.X * 0.5)
+                local btn = namedLane:IsA("GuiButton") and namedLane or namedLane:FindFirstChildWhichIsA("GuiButton", true)
+                if btn then
+                    laneButtons[idx] = btn
+                end
             end
         end
-    end
 
-    for _, obj in ipairs(area:GetDescendants()) do
-        if obj:IsA("GuiObject") and obj.Visible then
-            local txt = (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or ""
-            local trimmed = txt:match("^%s*(.-)%s*$")
-            local laneIdx = tonumber(trimmed)
-            if laneIdx and laneIdx >= 1 and laneIdx <= 5 then
-                laneCenters[laneIdx] = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-                local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
-                if btn and btn.Active then
-                    laneButtons[laneIdx] = btn
+        for _, obj in ipairs(area:GetDescendants()) do
+            if obj:IsA("GuiObject") and obj.Visible then
+                local txt = (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or ""
+                local trimmed = txt:match("^%s*(.-)%s*$")
+                local laneIdx = tonumber(trimmed)
+                if laneIdx and laneIdx >= 1 and laneIdx <= 5 then
+                    laneCenters[idx] = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
+                    local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
+                    if btn and btn.Active then
+                        laneButtons[laneIdx] = btn
+                    end
                 end
             end
         end
@@ -300,45 +316,47 @@ local function tryPlayFishChaosGame(mg, Config, allText)
     local bestTarget = nil
     local bestScore = -999
 
-    for _, obj in ipairs(area:GetDescendants()) do
-        if obj:IsA("GuiObject") and obj.Visible then
-            local nLower = string.lower(obj.Name)
-            local isShoe = string.find(nLower, "boot", 1, true)
-                or string.find(nLower, "shoe", 1, true)
-                or string.find(nLower, "รองเท้า", 1, true)
-            local isLaneOrBg = string.find(nLower, "lane", 1, true)
-                or string.find(nLower, "bg", 1, true)
-                or string.find(nLower, "pond", 1, true)
-                or string.find(nLower, "slot", 1, true)
-            local isFishLike = string.find(nLower, "fish", 1, true)
-                or string.find(nLower, "gold", 1, true)
-                or string.find(nLower, "prey", 1, true)
-                or string.find(nLower, "target", 1, true)
+    for _, area in ipairs(areas) do
+        for _, obj in ipairs(area:GetDescendants()) do
+            if obj:IsA("GuiObject") and obj.Visible then
+                local nLower = string.lower(obj.Name)
+                local isShoe = string.find(nLower, "boot", 1, true)
+                    or string.find(nLower, "shoe", 1, true)
+                    or string.find(nLower, "รองเท้า", 1, true)
+                local isLaneOrBg = string.find(nLower, "lane", 1, true)
+                    or string.find(nLower, "bg", 1, true)
+                    or string.find(nLower, "pond", 1, true)
+                    or string.find(nLower, "slot", 1, true)
+                local isFishLike = string.find(nLower, "fish", 1, true)
+                    or string.find(nLower, "gold", 1, true)
+                    or string.find(nLower, "prey", 1, true)
+                    or string.find(nLower, "target", 1, true)
 
-            if not isShoe and not isLaneOrBg and (obj:IsA("ImageButton") or obj:IsA("ImageLabel") or isFishLike) then
-                if obj.AbsoluteSize.X >= 16 and obj.AbsoluteSize.X <= 160 and obj.AbsoluteSize.Y >= 16 and obj.AbsoluteSize.Y <= 160 then
-                    local cx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-                    local matchedLane = nil
-                    local minDist = 75
+                if not isShoe and not isLaneOrBg and (obj:IsA("ImageButton") or obj:IsA("ImageLabel") or isFishLike) then
+                    if obj.AbsoluteSize.X >= 16 and obj.AbsoluteSize.X <= 160 and obj.AbsoluteSize.Y >= 16 and obj.AbsoluteSize.Y <= 160 then
+                        local cx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
+                        local matchedLane = nil
+                        local minDist = 75
 
-                    for idx = 1, 5 do
-                        local lx = laneCenters[idx]
-                        if lx then
-                            local dist = math.abs(cx - lx)
-                            if dist < minDist then
-                                minDist = dist
-                                matchedLane = idx
+                        for idx = 1, 5 do
+                            local lx = laneCenters[idx]
+                            if lx then
+                                local dist = math.abs(cx - lx)
+                                if dist < minDist then
+                                    minDist = dist
+                                    matchedLane = idx
+                                end
                             end
                         end
-                    end
 
-                    if matchedLane then
-                        local isGold = string.find(nLower, "gold", 1, true) ~= nil
-                        local score = (isGold and 25 or 10) - (minDist * 0.15)
-                        if score > bestScore then
-                            bestScore = score
-                            bestLane = matchedLane
-                            bestTarget = laneButtons[matchedLane] or obj
+                        if matchedLane then
+                            local isGold = string.find(nLower, "gold", 1, true) ~= nil
+                            local score = (isGold and 25 or 10) - (minDist * 0.15)
+                            if score > bestScore then
+                                bestScore = score
+                                bestLane = matchedLane
+                                bestTarget = laneButtons[matchedLane] or obj
+                            end
                         end
                     end
                 end
@@ -369,21 +387,28 @@ end
 
 -- [มินิเกมที่ 3] Bait Memory (ความจำเหยื่อ Bait1 - Bait4)
 local function tryPlayMemoryBaitGame(mg, Config, allText)
-    local area = getMiniGameArea(mg)
+    local areas = getActiveMiniGameAreas(mg)
     local choices = {}
     local orderNames = { "WORM", "SHRIMP", "CRICKET", "MINNOW" }
     local memKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four }
 
-    for idx = 1, 4 do
-        local baitBtn = area:FindFirstChild("Bait" .. tostring(idx))
-        if baitBtn and baitBtn:IsA("GuiObject") and baitBtn.Visible then
-            local face = baitBtn:FindFirstChild("Face")
-            choices[idx] = {
-                index = idx,
-                name = orderNames[idx],
-                card = (face and face:IsA("GuiObject")) and face or baitBtn,
-                target = baitBtn,
-            }
+    for _, area in ipairs(areas) do
+        for idx = 1, 4 do
+            local baitBtn = area:FindFirstChild("Bait" .. tostring(idx))
+            if baitBtn and baitBtn:IsA("GuiObject") and baitBtn.Visible then
+                local face = baitBtn:FindFirstChild("Face")
+                local shine = face and face:FindFirstChild("Shine")
+                choices[idx] = {
+                    index = idx,
+                    name = orderNames[idx],
+                    card = (face and face:IsA("GuiObject")) and face or baitBtn,
+                    shine = shine,
+                    target = baitBtn,
+                }
+            end
+        end
+        if next(choices) ~= nil then
+            break
         end
     end
 
@@ -404,24 +429,28 @@ local function tryPlayMemoryBaitGame(mg, Config, allText)
         local item = choices[idx]
         local c = item and item.card
         local rootBtn = item and item.target
+        local sh = item and item.shine
         if c and c.Visible then
-            local bg = c.BackgroundColor3
-            local brightness = (bg.R + bg.G + bg.B) / 3
-            local highlighted = brightness > 0.80 or c.BackgroundTransparency < 0.08
+            local highlighted = false
 
-            if not highlighted and rootBtn and rootBtn:IsA("GuiObject") then
-                local rBg = rootBtn.BackgroundColor3
-                if ((rBg.R + rBg.G + rBg.B) / 3) > 0.80 or rootBtn.BackgroundTransparency < 0.08 then
+            if sh and sh:IsA("GuiObject") and sh.Visible then
+                highlighted = true
+            end
+
+            if not highlighted then
+                local bg = c.BackgroundColor3
+                local brightness = (bg.R + bg.G + bg.B) / 3
+                if brightness > 0.88 or c.BackgroundTransparency < 0.05 then
                     highlighted = true
                 end
             end
 
             if not highlighted then
                 for _, d in ipairs(c:GetDescendants()) do
-                    if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.0 then
+                    if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.2 then
                         highlighted = true
                         break
-                    elseif d:IsA("UIScale") and d.Scale > 1.03 then
+                    elseif d:IsA("UIScale") and d.Scale > 1.04 then
                         highlighted = true
                         break
                     end
@@ -430,10 +459,10 @@ local function tryPlayMemoryBaitGame(mg, Config, allText)
 
             if not highlighted and rootBtn then
                 for _, d in ipairs(rootBtn:GetDescendants()) do
-                    if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.0 then
+                    if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.2 then
                         highlighted = true
                         break
-                    elseif d:IsA("UIScale") and d.Scale > 1.03 then
+                    elseif d:IsA("UIScale") and d.Scale > 1.04 then
                         highlighted = true
                         break
                     end
@@ -541,7 +570,7 @@ function GameModule.init(Config, Utils)
         end
     end)
 
-    print("[Net a Fish] โหลดระบบมินิเกมครบทั้ง 3 เกม (REEL, Fish Chaos, Bait Memory) เรียบร้อย")
+    print("[Net a Fish] โหลดระบบมินิเกมครบทั้ง 3 เกม (รองรับหลาย Window/Area และ PlayButton) เรียบร้อย")
 end
 
 return GameModule
