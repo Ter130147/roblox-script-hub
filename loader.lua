@@ -13,7 +13,7 @@ end
 
 local function fetchRemote(relativePath)
     local ok, result = pcall(function()
-        return game:HttpGet(BASE_URL .. relativePath .. "?t=" .. tostring(tick()))
+        return game:httpGet(BASE_URL .. relativePath .. "?t=" .. tostring(tick( .. (string.find(BASE_URL .. relativePath .. "?t=" .. tostring(tick(, "?", 1, true) and "&" or "?") .. "cb=" .. tostring(os.clock()) .. "_" .. tostring(math.random(10000,99999)))))
     end)
     if not ok or type(result) ~= "string" then
         warn("[Hub] Failed to fetch:", relativePath, result)
