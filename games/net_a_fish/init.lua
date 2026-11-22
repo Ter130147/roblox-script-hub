@@ -209,291 +209,118 @@ local function tryPlayReelGame(mg, Config)
 end
 
 local function tryPlayFishChaosGame(mg, Config)
-local isChaos = false
-for _, obj in ipairs(mg:GetDescendants()) do
-if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Visible then
-local t = obj.Text or ""
-if string.find(t, "ความโกลาหลของปลา", 1, true)
-or string.find(t, "GOLDEN +30", 1, true)
-or string.find(t, "BOOT -15", 1, true)
-then
-isChaos = true
-break
-end
-end
-end
-
-if not isChaos then
-return false
-end
-
-local spd = tonumber(Config and Config.MiniGameSpeed) or 0.16
-if tick() - lastActionTime < math.clamp(spd, 0.10, 1.0) then
-return true
-end
-
-local laneKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five }
-local laneCenters = {}
-local laneButtons = {}
-
-for _, obj in ipairs(mg:GetDescendants()) do
-if obj:IsA("GuiObject") and obj.Visible then
-local txt = (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or ""
-local trimmed = txt:match("^%s*(.-)%s*$")
-local laneIdx = tonumber(trimmed)
-if laneIdx and laneIdx >= 1 and laneIdx <= 5 then
-local centerX = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-laneCenters[laneIdx] = centerX
-local btn = obj:IsA("GuiButton") and obj or (obj.Parent and obj.Parent:IsA("GuiButton") and obj.Parent or nil)
-if btn and btn.Active then
-    laneButtons[laneIdx] = btn
-end
-end
-end
-end
-
-local bestLane = nil
-local bestTarget = nil
-local bestScore = -999
-
-for _, obj in ipairs(mg:GetDescendants()) do
-if obj:IsA("GuiObject") and obj.Visible then
-local nLower = string.lower(obj.Name)
-local isShoe = string.find(nLower, "boot", 1, true)
-or string.find(nLower, "shoe", 1, true)
-or string.find(nLower, "รองเท้า", 1, true)
-local isLaneOrBg = string.find(nLower, "lane", 1, true)
-or string.find(nLower, "bg", 1, true)
-or string.find(nLower, "pond", 1, true)
-or string.find(nLower, "slot", 1, true)
-local isFishLike = string.find(nLower, "fish", 1, true)
-or string.find(nLower, "gold", 1, true)
-or string.find(nLower, "prey", 1, true)
-or string.find(nLower, "target", 1, true)
-
-if not isShoe and not isLaneOrBg and (obj:IsA("ImageButton") or obj:IsA("ImageLabel") or isFishLike) then
-if obj.AbsoluteSize.X >= 18 and obj.AbsoluteSize.X <= 150 and obj.AbsoluteSize.Y >= 18 and obj.AbsoluteSize.Y <= 150 then
-    local cx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-    local matchedLane = nil
-    local minDist = 70
-
-    for idx = 1, 5 do
-        local lx = laneCenters[idx]
-        if lx then
-            local dist = math.abs(cx - lx)
-            if dist < minDist then
-                minDist = dist
-                matchedLane = idx
+    local isChaos = false
+    for _, obj in ipairs(mg:GetDescendants()) do
+        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Visible then
+            local t = obj.Text or ""
+            if string.find(t, "ความโกลาหลของปลา", 1, true)
+                or string.find(t, "GOLDEN +30", 1, true)
+                or string.find(t, "BOOT -15", 1, true)
+            then
+                isChaos = true
+                break
             end
         end
     end
 
-    if matchedLane then
-        local isGold = string.find(nLower, "gold", 1, true) ~= nil
-        local score = (isGold and 25 or 10) - (minDist * 0.15)
-        if score > bestScore then
-            bestScore = score
-            bestLane = matchedLane
-            bestTarget = laneButtons[matchedLane] or obj
-        end
+    if not isChaos then
+        return false
     end
-end
-end
-end
-end
 
-if bestLane then
-lastActionTime = tick()
-if laneButtons[bestLane] then
-clickInsideMiniGame(laneButtons[bestLane])
-end
-pcall(function()
-local kc = laneKeys[bestLane]
-if kc then
-VirtualInputManager:SendKeyEvent(true, kc, false, game)
-task.wait(0.015)
-VirtualInputManager:SendKeyEvent(false, kc, false, game)
-end
-end)
-if not laneButtons[bestLane] and bestTarget then
-clickInsideMiniGame(bestTarget)
-end
-end
+    local spd = tonumber(Config and Config.MiniGameSpeed) or 0.16
+    if tick() - lastActionTime < math.clamp(spd, 0.10, 1.0) then
+        return true
+    end
 
-return true
-end
+    local laneKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five }
+    local laneCenters = {}
+    local laneButtons = {}
 
-local laneKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five }
-local laneCenters = {}
-local laneButtons = {}
-
-for _, obj in ipairs(mg:GetDescendants()) do
-if obj:IsA("GuiObject") and obj.Visible then
-local txt = (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or ""
-local trimmed = txt:match("^%s*(.-)%s*$")
-local laneIdx = tonumber(trimmed)
-if laneIdx and laneIdx >= 1 and laneIdx <= 5 then
-local centerX = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-laneCenters[laneIdx] = centerX
-local btn = obj:IsA("GuiButton") and obj or (obj.Parent and obj.Parent:IsA("GuiButton") and obj.Parent or nil)
-if btn and btn.Active then
-    laneButtons[laneIdx] = btn
-end
-end
-end
-end
-
-local bestLane = nil
-local bestTarget = nil
-local bestScore = -999
-
-for _, obj in ipairs(mg:GetDescendants()) do
-if obj:IsA("GuiObject") and obj.Visible then
-local nLower = string.lower(obj.Name)
-local isShoe = string.find(nLower, "boot", 1, true)
-or string.find(nLower, "shoe", 1, true)
-or string.find(nLower, "รองเท้า", 1, true)
-local isLaneOrBg = string.find(nLower, "lane", 1, true)
-or string.find(nLower, "bg", 1, true)
-or string.find(nLower, "pond", 1, true)
-or string.find(nLower, "slot", 1, true)
-local isFishLike = string.find(nLower, "fish", 1, true)
-or string.find(nLower, "gold", 1, true)
-or string.find(nLower, "prey", 1, true)
-or string.find(nLower, "target", 1, true)
-
-if not isShoe and not isLaneOrBg and (obj:IsA("ImageButton") or obj:IsA("ImageLabel") or isFishLike) then
-if obj.AbsoluteSize.X >= 18 and obj.AbsoluteSize.X <= 150 and obj.AbsoluteSize.Y >= 18 and obj.AbsoluteSize.Y <= 150 then
-    local cx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-    local matchedLane = nil
-    local minDist = 70
-
-    for idx = 1, 5 do
-        local lx = laneCenters[idx]
-        if lx then
-            local dist = math.abs(cx - lx)
-            if dist < minDist then
-                minDist = dist
-                matchedLane = idx
+    for _, obj in ipairs(mg:GetDescendants()) do
+        if obj:IsA("GuiObject") and obj.Visible then
+            local txt = (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or ""
+            local trimmed = txt:match("^%s*(.-)%s*$")
+            local laneIdx = tonumber(trimmed)
+            if laneIdx and laneIdx >= 1 and laneIdx <= 5 then
+                local centerX = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
+                laneCenters[laneIdx] = centerX
+                local btn = obj:IsA("GuiButton") and obj or (obj.Parent and obj.Parent:IsA("GuiButton") and obj.Parent or nil)
+                if btn and btn.Active then
+                    laneButtons[laneIdx] = btn
+                end
             end
         end
     end
 
-    if matchedLane then
-        local isGold = string.find(nLower, "gold", 1, true) ~= nil
-        local score = (isGold and 25 or 10) - (minDist * 0.15)
-        if score > bestScore then
-            bestScore = score
-            bestLane = matchedLane
-            bestTarget = laneButtons[matchedLane] or obj
+    local bestLane = nil
+    local bestTarget = nil
+    local bestScore = -999
+
+    for _, obj in ipairs(mg:GetDescendants()) do
+        if obj:IsA("GuiObject") and obj.Visible then
+            local nLower = string.lower(obj.Name)
+            local isShoe = string.find(nLower, "boot", 1, true)
+                or string.find(nLower, "shoe", 1, true)
+                or string.find(nLower, "รองเท้า", 1, true)
+            local isLaneOrBg = string.find(nLower, "lane", 1, true)
+                or string.find(nLower, "bg", 1, true)
+                or string.find(nLower, "pond", 1, true)
+                or string.find(nLower, "slot", 1, true)
+            local isFishLike = string.find(nLower, "fish", 1, true)
+                or string.find(nLower, "gold", 1, true)
+                or string.find(nLower, "prey", 1, true)
+                or string.find(nLower, "target", 1, true)
+
+            if not isShoe and not isLaneOrBg and (obj:IsA("ImageButton") or obj:IsA("ImageLabel") or isFishLike) then
+                if obj.AbsoluteSize.X >= 18 and obj.AbsoluteSize.X <= 150 and obj.AbsoluteSize.Y >= 18 and obj.AbsoluteSize.Y <= 150 then
+                    local cx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
+                    local matchedLane = nil
+                    local minDist = 70
+
+                    for idx = 1, 5 do
+                        local lx = laneCenters[idx]
+                        if lx then
+                            local dist = math.abs(cx - lx)
+                            if dist < minDist then
+                                minDist = dist
+                                matchedLane = idx
+                            end
+                        end
+                    end
+
+                    if matchedLane then
+                        local isGold = string.find(nLower, "gold", 1, true) ~= nil
+                        local score = (isGold and 25 or 10) - (minDist * 0.15)
+                        if score > bestScore then
+                            bestScore = score
+                            bestLane = matchedLane
+                            bestTarget = laneButtons[matchedLane] or obj
+                        end
+                    end
+                end
+            end
         end
     end
-end
-end
-end
-end
 
-if bestLane then
-lastActionTime = tick()
-if laneButtons[bestLane] then
-clickInsideMiniGame(laneButtons[bestLane])
-end
-pcall(function()
-local kc = laneKeys[bestLane]
-if kc then
-VirtualInputManager:SendKeyEvent(true, kc, false, game)
-task.wait(0.015)
-VirtualInputManager:SendKeyEvent(false, kc, false, game)
-end
-end)
-if not laneButtons[bestLane] and bestTarget then
-clickInsideMiniGame(bestTarget)
-end
-end
+    if bestLane then
+        lastActionTime = tick()
+        if laneButtons[bestLane] then
+            clickInsideMiniGame(laneButtons[bestLane])
+        end
+        pcall(function()
+            local kc = laneKeys[bestLane]
+            if kc then
+                VirtualInputManager:SendKeyEvent(true, kc, false, game)
+                task.wait(0.015)
+                VirtualInputManager:SendKeyEvent(false, kc, false, game)
+            end
+        end)
+        if not laneButtons[bestLane] and bestTarget then
+            clickInsideMiniGame(bestTarget)
+        end
+    end
 
-return true
-end
-
-local laneKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five }
-local laneCenters = {}
-local laneButtons = {}
-
-for _, obj in ipairs(mg:GetDescendants()) do
-if obj:IsA("GuiObject") and obj.Visible then
-local txt = (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or ""
-local trimmed = txt:match("^%s*(.-)%s*$")
-local laneIdx = tonumber(trimmed)
-if laneIdx and laneIdx >= 1 and laneIdx <= 5 then
-local centerX = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-laneCenters[laneIdx] = centerX
-local btn = obj:IsA("GuiButton") and obj or (obj.Parent and obj.Parent:IsA("GuiButton") and obj.Parent or nil)
-if btn and btn.Active then
-laneButtons[laneIdx] = btn
-end
-end
-end
-end
-
-local bestLane = nil
-local bestTarget = nil
-local bestScore = -1
-
-for _, obj in ipairs(mg:GetDescendants()) do
-if obj:IsA("GuiObject") and obj.Visible then
-local nLower = string.lower(obj.Name)
-local isShoe = string.find(nLower, "boot", 1, true) or string.find(nLower, "shoe", 1, true)
-local isLaneOrBg = string.find(nLower, "lane", 1, true) or string.find(nLower, "bg", 1, true) or string.find(nLower, "pond", 1, true)
-local isFishLike = string.find(nLower, "fish", 1, true) or string.find(nLower, "gold", 1, true) or string.find(nLower, "prey", 1, true) or string.find(nLower, "target", 1, true)
-
-if not isShoe and not isLaneOrBg and (obj:IsA("ImageButton") or obj:IsA("ImageLabel") or isFishLike) then
-if obj.AbsoluteSize.X >= 16 and obj.AbsoluteSize.X <= 160 and obj.AbsoluteSize.Y >= 16 and obj.AbsoluteSize.Y <= 160 then
-local cx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-local matchedLane = nil
-local minDist = 75
-
-for idx = 1, 5 do
-local lx = laneCenters[idx]
-if lx then
-local dist = math.abs(cx - lx)
-if dist < minDist then
-minDist = dist
-matchedLane = idx
-end
-end
-end
-
-if matchedLane then
-local score = (string.find(nLower, "gold", 1, true) and 20 or 10) - (minDist * 0.1)
-if score > bestScore then
-bestScore = score
-bestLane = matchedLane
-bestTarget = laneButtons[matchedLane] or obj
-end
-end
-end
-end
-end
-end
-
-if bestLane then
-lastActionTime = tick()
-if laneButtons[bestLane] then
-clickInsideMiniGame(laneButtons[bestLane])
-end
-pcall(function()
-local kc = laneKeys[bestLane]
-if kc then
-VirtualInputManager:SendKeyEvent(true, kc, false, game)
-task.wait(0.015)
-VirtualInputManager:SendKeyEvent(false, kc, false, game)
-end
-end)
-if not laneButtons[bestLane] and bestTarget then
-clickInsideMiniGame(bestTarget)
-end
-end
-
-return true
+    return true
 end
 
 local function tryPlayMemoryBaitGame(mg, Config)
@@ -594,7 +421,7 @@ local function stepMiniGame(Config)
     tryClickPlayInMiniGame(mg)
 end
 
-function GameModule.init(Config, Utils)`r`n`tif _G.TerNetAFishLoaded then return end`r`n`t_G.TerNetAFishLoaded = true
+function GameModule.init(Config, Utils)
     if started then
         return
     end
@@ -626,7 +453,7 @@ function GameModule.init(Config, Utils)`r`n`tif _G.TerNetAFishLoaded then return
         end
     end)
 
-    print("[Net a Fish] โหลดไฟล์แยกหมวดที่ 1 (cat1_fishing_collect.lua) และระบบมินิเกมเรียบร้อย")
+    print("[Net a Fish] โหลดไฟล์แยกหมวดที่ 1 และระบบมินิเกมเรียบร้อย")
 end
 
 return GameModule
