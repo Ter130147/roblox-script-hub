@@ -68,18 +68,15 @@ local function clickInsideMiniGame(guiObj)
         return false
     end
 
-    local firedConn = false
     pcall(function()
-        if getconnections and (guiObj:IsA("GuiButton") or guiObj:FindFirstChildWhichIsA("GuiButton", true)) then
+        if getconnections then
             local btn = guiObj:IsA("GuiButton") and guiObj or guiObj:FindFirstChildWhichIsA("GuiButton", true)
             if btn and btn.Active then
                 for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
                     conn:Fire()
-                    firedConn = true
                 end
                 for _, conn in ipairs(getconnections(btn.Activated)) do
                     conn:Fire()
-                    firedConn = true
                 end
             end
         end
@@ -202,6 +199,51 @@ local function tryPlayReelGame(mg, Config)
     return true
 end
 
+local function tryPlayFishChaosGame(mg, Config)
+    local isChaos = false
+    for _, obj in ipairs(mg:GetDescendants()) do
+        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Visible then
+            local t = obj.Text or ""
+            if string.find(t, "ความโกลาหลของปลา", 1, true) or string.find(t, "อย่าจับรองเท้า", 1, true) then
+                isChaos = true
+                break
+            end
+        end
+    end
+
+    if not isChaos then
+        return false
+    end
+
+    local spd = tonumber(Config and Config.MiniGameSpeed) or 0.12
+    if tick() - lastActionTime < math.clamp(spd, 0.06, 1.0) then
+        return true
+    end
+
+    for _, obj in ipairs(mg:GetDescendants()) do
+        if obj:IsA("GuiButton") and obj.Visible and obj.Active then
+            local nLower = string.lower(obj.Name)
+            local tLower = obj:IsA("TextButton") and string.lower(obj.Text or "") or ""
+            if not string.find(nLower, "close", 1, true)
+                and not string.find(nLower, "exit", 1, true)
+                and not string.find(nLower, "shoe", 1, true)
+                and not string.find(nLower, "boot", 1, true)
+                and tLower ~= "x"
+                and not string.find(tLower, "play", 1, true)
+                and not containsDangerText(obj.Parent)
+            then
+                if obj.AbsoluteSize.X >= 18 and obj.AbsoluteSize.Y >= 18 then
+                    lastActionTime = tick()
+                    clickInsideMiniGame(obj)
+                    break
+                end
+            end
+        end
+    end
+
+    return true
+end
+
 local function tryPlayMemoryBaitGame(mg, Config)
     local yourTurn = false
     local choices = {}
@@ -288,15 +330,16 @@ local function stepMiniGame(Config)
         return
     end
 
-    if tryClickPlayInMiniGame(mg) then
-        return
-    end
-
     if tryPlayReelGame(mg, Config) then
         return
     end
 
+    if tryPlayFishChaosGame(mg, Config) then
+        return
+    end
+
     tryPlayMemoryBaitGame(mg, Config)
+    tryClickPlayInMiniGame(mg)
 end
 
 function GameModule.init(Config, Utils)
@@ -323,7 +366,7 @@ function GameModule.init(Config, Utils)
         end
     end)
 
-    print("[Net a Fish] โหลดระบบกดรับ ▶ PLAY และเล่นมินิเกมอัตโนมัติเรียบร้อย")
+    print("[Net a Fish] โหลดระบบเล่นมินิเกมครบ 3 รูปแบบ + กดเข้าเล่นใน MiniGameUI เรียบร้อย")
 end
 
 return GameModule
