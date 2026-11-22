@@ -1,4 +1,3 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -11,341 +10,380 @@ local lastActionTime = 0
 local lastAcceptTime = 0
 
 local BLOCKED_GUIS = {
-    TerHubProUI = true,
-    StoreUI = true,
-    PassOffer = true,
-    PearlShopUI = true,
-    BlackMarketUI = true,
-    OfflinePromoUI = true,
-    AutoThrowPromo = true,
-    SeasonPassUI = true,
-    AvatarMenuUI = true,
-    SettingsUI = true,
-    TradeUI = true,
-    PurchasePrompt = true,
-    RobloxGui = true,
+TerHubProUI = true,
+StoreUI = true,
+PassOffer = true,
+PearlShopUI = true,
+BlackMarketUI = true,
+OfflinePromoUI = true,
+AutoThrowPromo = true,
+SeasonPassUI = true,
+AvatarMenuUI = true,
+SettingsUI = true,
+TradeUI = true,
+PurchasePrompt = true,
+RobloxGui = true,
 }
 
 local function scanGameStructure()
-    print("=== 1. REMOTES IN REPLICATEDSTORAGE ===")
-    local r = ReplicatedStorage:FindFirstChild("Remotes")
-    if r then
-        for _, obj in ipairs(r:GetDescendants()) do
-            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                print(obj.ClassName, "|", obj:GetFullName())
-            end
-        end
-    end
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+print("=== 1. REMOTES IN REPLICATEDSTORAGE ===")
+local r = ReplicatedStorage:FindFirstChild("Remotes")
+if r then
+for _, obj in ipairs(r:GetDescendants()) do
+if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+print(obj.ClassName, "|", obj:GetFullName())
+end
+end
+end
 
-    print("=== 2. ACTIVE PLAYER GUIS ===")
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if pg then
-        for _, gui in ipairs(pg:GetChildren()) do
-            if gui:IsA("ScreenGui") then
-                print("ScreenGui:", gui.Name, "| Enabled:", tostring(gui.Enabled))
-            end
-        end
-    end
+print("=== 2. ACTIVE PLAYER GUIS ===")
+local pg = LocalPlayer:FindFirstChild("PlayerGui")
+if pg then
+for _, gui in ipairs(pg:GetChildren()) do
+if gui:IsA("ScreenGui") then
+print("ScreenGui:", gui.Name, "| Enabled:", tostring(gui.Enabled))
+end
+end
+end
 
-    print("=== 3. WORKSPACE FOLDERS / MODELS ===")
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("Folder") or obj:IsA("Model") then
-            print("Workspace:", obj.ClassName, "|", obj.Name)
-        end
-    end
-    print("=== SCAN COMPLETE ===")
+print("=== 3. WORKSPACE FOLDERS / MODELS ===")
+for _, obj in ipairs(workspace:GetChildren()) do
+if obj:IsA("Folder") or obj:IsA("Model") then
+print("Workspace:", obj.ClassName, "|", obj.Name)
+end
+end
+print("=== SCAN COMPLETE ===")
 end
 
 local function fireGuiBtn(btn)
-    if not btn or not btn.Visible or not btn.Active then
-        return
-    end
-    pcall(function()
-        if getconnections then
-            for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
-                conn:Fire()
-            end
-            for _, conn in ipairs(getconnections(btn.Activated)) do
-                conn:Fire()
-            end
-        end
-    end)
+if not btn or not btn.Visible or not btn.Active then
+return
+end
+pcall(function()
+if getconnections then
+for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
+conn:Fire()
+end
+for _, conn in ipairs(getconnections(btn.Activated)) do
+conn:Fire()
+end
+end
+end)
 end
 
 local function containsDangerText(container)
-    if not container then
-        return true
-    end
-    for _, d in ipairs(container:GetDescendants()) do
-        if d:IsA("TextLabel") or d:IsA("TextButton") then
-            local t = string.lower(d.Text or "")
-            if string.find(t, "robux", 1, true)
-                or string.find(t, "r$", 1, true)
-                or string.find(t, "ซื้อ", 1, true)
-                or string.find(t, "buy", 1, true)
-                or string.find(t, "skip", 1, true)
-                or string.find(t, "ข้าม", 1, true)
-                or string.find(t, "เติม", 1, true)
-            then
-                return true
-            end
-        end
-    end
-    return false
+if not container then
+return true
+end
+for _, d in ipairs(container:GetDescendants()) do
+if d:IsA("TextLabel") or d:IsA("TextButton") then
+local t = string.lower(d.Text or "")
+if string.find(t, "robux", 1, true)
+or string.find(t, "r$", 1, true)
+or string.find(t, "ซื้อ", 1, true)
+or string.find(t, "buy", 1, true)
+or string.find(t, "skip", 1, true)
+or string.find(t, "ข้าม", 1, true)
+or string.find(t, "เติม", 1, true)
+then
+return true
+end
+end
+end
+return false
+end
+
+local function isPlayInviteButtonText(lowText)
+if string.find(lowText, "play", 1, true)
+or string.find(lowText, "เล่น", 1, true)
+or string.find(lowText, "เข้าร่วม", 1, true)
+or string.find(lowText, "ยอมรับ", 1, true)
+or string.find(lowText, "ตกลง", 1, true)
+or string.find(lowText, "join", 1, true)
+or string.find(lowText, "accept", 1, true)
+or string.find(lowText, "enter", 1, true)
+or string.find(lowText, "start", 1, true)
+then
+return true
+end
+return false
 end
 
 local function tryAcceptIncomingMiniGame()
-    if tick() - lastAcceptTime < 1.2 then
-        return
-    end
+if tick() - lastAcceptTime < 1.2 then
+return
+end
 
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then
-        return
-    end
+local pg = LocalPlayer:FindFirstChild("PlayerGui")
+if not pg then
+return
+end
 
-    local mg = pg:FindFirstChild("MiniGameUI")
-    if mg and mg:IsA("ScreenGui") and mg.Enabled then
-        return
-    end
+local mg = pg:FindFirstChild("MiniGameUI")
+if not mg or not mg:IsA("ScreenGui") or not mg.Enabled then
+return
+end
 
-    local acceptLabels = {
-        ["เล่น"] = true,
-        ["เข้าร่วม"] = true,
-        ["ยอมรับ"] = true,
-        ["ตกลง"] = true,
-        ["play"] = true,
-        ["join"] = true,
-        ["accept"] = true,
-        ["enter"] = true,
-        ["start"] = true,
-    }
-
-    for _, gui in ipairs(pg:GetChildren()) do
-        if gui:IsA("ScreenGui") and gui.Enabled and not BLOCKED_GUIS[gui.Name] then
-            local hasMiniGameHint = false
-            local candidateBtn = nil
-
-            for _, obj in ipairs(gui:GetDescendants()) do
-                if obj:IsA("GuiObject") and obj.Visible then
-                    if obj:IsA("TextLabel") or obj:IsA("TextButton") then
-                        local raw = obj.Text or ""
-                        local low = string.lower((raw:gsub("^%s*(.-)%s*$", "%1")))
-
-                        if string.find(raw, "มินิเกม", 1, true)
-                            or string.find(low, "minigame", 1, true)
-                            or string.find(low, "mini game", 1, true)
-                            or string.find(raw, "ช่วยความจำเหยื่อ", 1, true)
-                            or string.find(raw, "การโยนที่สมบูรณ์แบบ", 1, true)
-                        then
-                            hasMiniGameHint = true
-                        end
-
-                        if obj:IsA("TextButton") and obj.Active and acceptLabels[low] then
-                            candidateBtn = obj
-                        end
-                    end
-                end
-            end
-
-            if hasMiniGameHint and candidateBtn and not containsDangerText(candidateBtn.Parent) then
-                lastAcceptTime = tick()
-                fireGuiBtn(candidateBtn)
-                return
-            end
-        end
-    end
+for _, obj in ipairs(mg:GetDescendants()) do
+if obj:IsA("GuiButton") and obj.Visible and obj.Active then
+local txt = ""
+if obj:IsA("TextButton") then
+txt = obj.Text or ""
+else
+local lbl = obj:FindFirstChildWhichIsA("TextLabel", true)
+if lbl then
+    txt = lbl.Text or ""
+end
+end
+local low = string.lower((txt:gsub("^%s*(.-)%s*$", "%1")))
+if isPlayInviteButtonText(low) and not containsDangerText(obj.Parent) then
+lastAcceptTime = tick()
+fireGuiBtn(obj)
+return
+end
+end
+end
 end
 
 local function getMiniGameGui()
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then
-        return nil
-    end
-    local mg = pg:FindFirstChild("MiniGameUI")
-    if mg and mg:IsA("ScreenGui") and mg.Enabled then
-        return mg
-    end
-    return nil
+local pg = LocalPlayer:FindFirstChild("PlayerGui")
+if not pg then
+return nil
+end
+local mg = pg:FindFirstChild("MiniGameUI")
+if mg and mg:IsA("ScreenGui") and mg.Enabled then
+return mg
+end
+return nil
 end
 
 local function findReelMiniGame(mg)
-    local reelBtn = nil
-    local greenZone = nil
-    local needle = nil
+local reelBtn = nil
+local greenZone = nil
+local needle = nil
 
-    for _, obj in ipairs(mg:GetDescendants()) do
-        if obj:IsA("GuiObject") and obj.Visible then
-            if obj:IsA("TextButton") and string.find(string.upper(obj.Text), "REEL", 1, true) then
-                reelBtn = obj
-            elseif obj:IsA("ImageButton") and string.find(string.lower(obj.Name), "reel", 1, true) then
-                reelBtn = obj
-            end
+for _, obj in ipairs(mg:GetDescendants()) do
+if obj:IsA("GuiObject") and obj.Visible then
+if obj:IsA("TextButton") and string.find(string.upper(obj.Text), "REEL", 1, true) then
+reelBtn = obj
+elseif obj:IsA("ImageButton") and string.find(string.lower(obj.Name), "reel", 1, true) then
+reelBtn = obj
+end
 
-            local nLower = string.lower(obj.Name)
-            if string.find(nLower, "needle", 1, true) or string.find(nLower, "pointer", 1, true) or string.find(nLower, "marker", 1, true) then
-                if obj.AbsoluteSize.X <= 24 and obj.AbsoluteSize.Y >= 16 then
-                    needle = obj
-                end
-            end
+local nLower = string.lower(obj.Name)
+if string.find(nLower, "needle", 1, true) or string.find(nLower, "pointer", 1, true) or string.find(nLower, "marker", 1, true) then
+if obj.AbsoluteSize.X <= 24 and obj.AbsoluteSize.Y >= 16 then
+    needle = obj
+end
+end
 
-            if obj:IsA("Frame") or obj:IsA("ImageLabel") then
-                local c = obj.BackgroundColor3
-                if (c.G > 0.55 and c.R < 0.45) or string.find(nLower, "green", 1, true) or string.find(nLower, "zone", 1, true) or string.find(nLower, "target", 1, true) then
-                    if obj.AbsoluteSize.X > 12 and obj.AbsoluteSize.X < 400 then
-                        greenZone = obj
-                    end
-                end
-            end
-        end
+if obj:IsA("Frame") or obj:IsA("ImageLabel") then
+local c = obj.BackgroundColor3
+if (c.G > 0.55 and c.R < 0.45) or string.find(nLower, "green", 1, true) or string.find(nLower, "zone", 1, true) or string.find(nLower, "target", 1, true) then
+    if obj.AbsoluteSize.X > 12 and obj.AbsoluteSize.X < 400 then
+        greenZone = obj
     end
+end
+end
+end
+end
 
-    return reelBtn, needle, greenZone
+return reelBtn, needle, greenZone
 end
 
 local function tryPlayReelGame(mg, Config)
-    local reelBtn, needle, greenZone = findReelMiniGame(mg)
-    if not reelBtn then
-        return false
-    end
+local reelBtn, needle, greenZone = findReelMiniGame(mg)
+if not reelBtn then
+return false
+end
 
-    local spd = tonumber(Config and Config.MiniGameSpeed) or 0.15
-    if tick() - lastActionTime < math.clamp(spd, 0.08, 1.0) then
-        return true
-    end
+local spd = tonumber(Config and Config.MiniGameSpeed) or 0.15
+if tick() - lastActionTime < math.clamp(spd, 0.08, 1.0) then
+return true
+end
 
-    if needle and greenZone then
-        local nCenter = needle.AbsolutePosition.X + (needle.AbsoluteSize.X * 0.5)
-        local zMin = greenZone.AbsolutePosition.X - 4
-        local zMax = greenZone.AbsolutePosition.X + greenZone.AbsoluteSize.X + 4
-        if nCenter >= zMin and nCenter <= zMax then
-            lastActionTime = tick()
-            fireGuiBtn(reelBtn)
-        end
-    elseif not needle then
-        lastActionTime = tick()
-        fireGuiBtn(reelBtn)
-    end
+if needle and greenZone then
+local nCenter = needle.AbsolutePosition.X + (needle.AbsoluteSize.X * 0.5)
+local zMin = greenZone.AbsolutePosition.X - 4
+local zMax = greenZone.AbsolutePosition.X + greenZone.AbsoluteSize.X + 4
+if nCenter >= zMin and nCenter <= zMax then
+lastActionTime = tick()
+fireGuiBtn(reelBtn)
+end
+elseif not needle then
+lastActionTime = tick()
+fireGuiBtn(reelBtn)
+end
 
-    return true
+return true
+end
+
+local function tryPlayFishChaosGame(mg, Config)
+local hasChaosText = false
+for _, obj in ipairs(mg:GetDescendants()) do
+if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Visible then
+if string.find(obj.Text or "", "ความโกลาหลของปลา", 1, true) then
+hasChaosText = true
+break
+end
+end
+end
+
+if not hasChaosText then
+return false
+end
+
+local spd = tonumber(Config and Config.MiniGameSpeed) or 0.15
+if tick() - lastActionTime < math.clamp(spd, 0.08, 1.0) then
+return true
+end
+
+for _, obj in ipairs(mg:GetDescendants()) do
+if obj:IsA("GuiButton") and obj.Visible and obj.Active then
+local nLower = string.lower(obj.Name)
+local tLower = obj:IsA("TextButton") and string.lower(obj.Text or "") or ""
+if not string.find(nLower, "close", 1, true)
+and not string.find(nLower, "exit", 1, true)
+and tLower ~= "x"
+and not containsDangerText(obj.Parent)
+then
+if string.find(nLower, "fish", 1, true) or string.find(nLower, "gold", 1, true) or string.find(nLower, "catch", 1, true) or string.find(nLower, "net", 1, true) then
+    lastActionTime = tick()
+    fireGuiBtn(obj)
+    break
+end
+end
+end
+end
+
+return true
 end
 
 local function tryPlayMemoryBaitGame(mg, Config)
-    local yourTurn = false
-    local choices = {}
-    local orderNames = { "worm", "shrimp", "cricket", "minnow" }
+local yourTurn = false
+local choices = {}
+local orderNames = { "worm", "shrimp", "cricket", "minnow" }
 
-    for _, obj in ipairs(mg:GetDescendants()) do
-        if obj:IsA("GuiObject") and obj.Visible then
-            local txt = ""
-            if obj:IsA("TextLabel") or obj:IsA("TextButton") then
-                txt = obj.Text
-            end
-            if string.find(txt, "ถึงตาคุณ", 1, true) then
-                yourTurn = true
-            end
-            local lowerTxt = string.lower(txt)
-            for idx, keyWord in ipairs(orderNames) do
-                if lowerTxt == keyWord then
-                    local btn = obj:IsA("GuiButton") and obj or obj:FindFirstChildWhichIsA("GuiButton", true)
-                    if not btn and obj.Parent then
-                        btn = obj.Parent:IsA("GuiButton") and obj.Parent or obj.Parent:FindFirstChildWhichIsA("GuiButton", true)
-                    end
-                    if btn and btn.Visible and btn.Active then
-                        choices[idx] = { index = idx, name = keyWord, button = btn }
-                    end
-                end
-            end
-        end
+for _, obj in ipairs(mg:GetDescendants()) do
+if obj:IsA("GuiObject") and obj.Visible then
+local txt = ""
+if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+txt = obj.Text
+end
+if string.find(txt, "ถึงตาคุณ", 1, true) then
+yourTurn = true
+end
+local lowerTxt = string.lower(txt)
+for idx, keyWord in ipairs(orderNames) do
+if lowerTxt == keyWord then
+    local btn = obj:IsA("GuiButton") and obj or obj:FindFirstChildWhichIsA("GuiButton", true)
+    if not btn and obj.Parent then
+        btn = obj.Parent:IsA("GuiButton") and obj.Parent or obj.Parent:FindFirstChildWhichIsA("GuiButton", true)
     end
+    if btn and btn.Visible and btn.Active then
+        choices[idx] = { index = idx, name = keyWord, button = btn }
+    end
+end
+end
+end
+end
 
-    local litIdx = nil
-    for idx = 1, 4 do
-        local item = choices[idx]
-        local btn = item and item.button
-        if btn and btn.Visible then
-            local bg = btn.BackgroundColor3
-            if ((bg.R + bg.G + bg.B) / 3) > 0.85 or btn.BackgroundTransparency < 0.05 then
-                litIdx = idx
-                break
-            end
-            for _, st in ipairs(btn:GetDescendants()) do
-                if st:IsA("UIStroke") and st.Enabled and st.Thickness >= 3 then
-                    litIdx = idx
-                    break
-                end
-            end
-            if litIdx then
-                break
-            end
-        end
-    end
+local litIdx = nil
+for idx = 1, 4 do
+local item = choices[idx]
+local btn = item and item.button
+if btn and btn.Visible then
+local bg = btn.BackgroundColor3
+if ((bg.R + bg.G + bg.B) / 3) > 0.85 or btn.BackgroundTransparency < 0.05 then
+litIdx = idx
+break
+end
+for _, st in ipairs(btn:GetDescendants()) do
+if st:IsA("UIStroke") and st.Enabled and st.Thickness >= 3 then
+    litIdx = idx
+    break
+end
+end
+if litIdx then
+break
+end
+end
+end
 
-    if not yourTurn then
-        if litIdx and litIdx ~= lastHighlightedKey then
-            lastHighlightedKey = litIdx
-            table.insert(sequenceQueue, litIdx)
-        elseif not litIdx then
-            lastHighlightedKey = nil
-        end
-        return
-    end
+if not yourTurn then
+if litIdx and litIdx ~= lastHighlightedKey then
+lastHighlightedKey = litIdx
+table.insert(sequenceQueue, litIdx)
+elseif not litIdx then
+lastHighlightedKey = nil
+end
+return
+end
 
-    local spd = tonumber(Config and Config.MiniGameSpeed) or 0.20
-    if tick() - lastActionTime < math.clamp(spd, 0.15, 1.50) then
-        return
-    end
+local spd = tonumber(Config and Config.MiniGameSpeed) or 0.20
+if tick() - lastActionTime < math.clamp(spd, 0.15, 1.50) then
+return
+end
 
-    if #sequenceQueue > 0 then
-        local nextIdx = table.remove(sequenceQueue, 1)
-        local targetItem = choices[nextIdx]
-        if targetItem and targetItem.button then
-            lastActionTime = tick()
-            fireGuiBtn(targetItem.button)
-        end
-    end
+if #sequenceQueue > 0 then
+local nextIdx = table.remove(sequenceQueue, 1)
+local targetItem = choices[nextIdx]
+if targetItem and targetItem.button then
+lastActionTime = tick()
+fireGuiBtn(targetItem.button)
+end
+end
 end
 
 local function stepMiniGame(Config)
-    local mg = getMiniGameGui()
-    if not mg then
-        sequenceQueue = {}
-        lastHighlightedKey = nil
-        tryAcceptIncomingMiniGame()
-        return
-    end
+local mg = getMiniGameGui()
+if not mg then
+sequenceQueue = {}
+lastHighlightedKey = nil
+return
+end
 
-    local handledReel = tryPlayReelGame(mg, Config)
-    if not handledReel then
-        tryPlayMemoryBaitGame(mg, Config)
-    end
+tryAcceptIncomingMiniGame()
+
+local handledReel = tryPlayReelGame(mg, Config)
+if handledReel then
+return
+end
+
+local handledChaos = tryPlayFishChaosGame(mg, Config)
+if handledChaos then
+return
+end
+
+tryPlayMemoryBaitGame(mg, Config)
 end
 
 function GameModule.init(Config, Utils)
-    if started then
-        return
-    end
-    started = true
+if started then
+return
+end
+started = true
 
-    task.spawn(function()
-        while started do
-            if Config and Config.ScanNow then
-                Config.ScanNow = false
-                scanGameStructure()
-            end
+task.spawn(function()
+while started do
+if Config and Config.ScanNow then
+Config.ScanNow = false
+scanGameStructure()
+end
 
-            if Config and Config.AutoMiniGame then
-                pcall(stepMiniGame, Config)
-                task.wait(0.04)
-            else
-                sequenceQueue = {}
-                lastHighlightedKey = nil
-                task.wait(0.25)
-            end
-        end
-    end)
+if Config and Config.AutoMiniGame then
+pcall(stepMiniGame, Config)
+task.wait(0.04)
+else
+sequenceQueue = {}
+lastHighlightedKey = nil
+task.wait(0.25)
+end
+end
+end)
 
-    print("[Net a Fish] โหลดระบบกดรับมินิเกมแบบปลอดภัย + เล่นอัตโนมัติเรียบร้อย")
+print("[Net a Fish] โหลดระบบกดรับ ▶ PLAY และเล่นมินิเกมอัตโนมัติเรียบร้อย")
 end
 
 return GameModule
