@@ -236,16 +236,21 @@ function UI.init(Config, hubTitle)
     end
 
     local minBtn = makeWinBtn("—", -76, false)
-    local closeBtn = makeWinBtn("✕", -40, true)
+    local closeBtn = makeWinBtn("X", -40, true)
 
     minBtn.MouseButton1Click:Connect(function()
         main.Visible = false
         miniIcon.Visible = true
     end)
 
+    closeBtn.ZIndex = 10
+    minBtn.ZIndex = 10
     closeBtn.MouseButton1Click:Connect(function()
-        main.Visible = false
-        miniIcon.Visible = true
+        if Config then
+            Config.AutoMiniGame = false
+            Config.ScanNow = false
+        end
+        screenGui:Destroy()
     end)
 
     local wasMiniDragged = makeDraggable(miniIcon, miniIcon)
