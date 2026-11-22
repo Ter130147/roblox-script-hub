@@ -296,7 +296,7 @@ end
 return true
 end
 
--- [2] Fish Chaos ตอบสนองทันทีเมื่อมีปลาในเลน 1-5 และหลบ BOOT
+-- [2] Fish Chaos จับตำแหน่งตามเลน 1-5 และหลีกเลี่ยงสีบูต (น้ำตาล)
 local function tryPlayFishChaosGame(mg, allText)
 local isChaos = string.find(allText, "FISH CHAOS", 1, true) ~= nil
 or string.find(allText, "ความโกลาหลของปลา", 1, true) ~= nil
@@ -307,7 +307,7 @@ if not isChaos then
 return false
 end
 
-if tick() - lastActionTime < 0.045 then
+if tick() - lastActionTime < 0.08 then
 return true
 end
 
@@ -315,19 +315,9 @@ local areas = getActiveMiniGameAreas(mg)
 local laneKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five }
 local laneCenters = {}
 local laneButtons = {}
+local laneBottomY = nil
 
 for _, area in ipairs(areas) do
-for idx = 1, 5 do
-local namedLane = area:FindFirstChild("Lane" .. tostring(idx), true) or area:FindFirstChild("Slot" .. tostring(idx), true)
-if namedLane and namedLane:IsA("GuiObject") and namedLane.Visible then
-laneCenters[idx] = namedLane.AbsolutePosition.X + (namedLane.AbsoluteSize.X * 0.5)
-local btn = namedLane:IsA("GuiButton") and namedLane or namedLane:FindFirstChildWhichIsA("GuiButton", true)
-if btn then
-laneButtons[idx] = btn
-end
-end
-end
-
 for _, obj in ipairs(area:GetDescendants()) do
 if obj:IsA("GuiObject") and obj.Visible then
 local txt = (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or ""
@@ -335,6 +325,7 @@ local trimmed = txt:match("^%s*(.-)%s*$")
 local laneIdx = tonumber(trimmed)
 if laneIdx and laneIdx >= 1 and laneIdx <= 5 then
 laneCenters[laneIdx] = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
+laneBottomY = obj.AbsolutePosition.Y + (obj.AbsoluteSize.Y * 0.5)
 local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
 if btn and btn.Active then
 laneButtons[laneIdx] = btn
@@ -344,32 +335,63 @@ end
 end
 end
 
+local laneCount = 0
+for idx = 1, 5 do
+if laneCenters[idx] then
+laneCount += 1
+end
+end
+
+if laneCount < 3 and #areas > 0 then
+local area = areas[1]
+local aPos = area.AbsolutePosition
+local aSz = area.AbsoluteSize
+if aSz.X > 100 and aSz.Y > 80 then
+laneBottomY = laneBottomY or (aPos.Y + aSz.Y * 0.84)
+for idx = 1, 5 do
+laneCenters[idx] = aPos.X + (aSz.X * ((idx - 0.5) / 5))
+end
+end
+end
+
 local bestLane = nil
 local bestTarget = nil
-local bestScore = -999
+local bestScore = -9999
 
 for _, area in ipairs(areas) do
+local aPos = area.AbsolutePosition
+local aSz = area.AbsoluteSize
+local playTopY = aPos.Y + 12
+local playBotY = (laneBottomY or (aPos.Y + aSz.Y * 0.85)) - 10
+
 for _, obj in ipairs(area:GetDescendants()) do
 if obj:IsA("GuiObject") and obj.Visible then
 local nLower = string.lower(obj.Name)
-local isShoe = string.find(nLower, "boot", 1, true)
+local isBootName = string.find(nLower, "boot", 1, true)
 or string.find(nLower, "shoe", 1, true)
 or string.find(nLower, "รองเท้า", 1, true)
-local isLaneOrBg = string.find(nLower, "lane", 1, true)
-or string.find(nLower, "bg", 1, true)
-or string.find(nLower, "pond", 1, true)
-or string.find(nLower, "slot", 1, true)
-local isFishLike = string.find(nLower, "fish", 1, true)
-or string.find(nLower, "gold", 1, true)
-or string.find(nLower, "prey", 1, true)
-or string.find(nLower, "target", 1, true)
+or string.find(nLower, "บูต", 1, true)
 
-if not isShoe and not isLaneOrBg and (obj:IsA("ImageButton") or obj:IsA("ImageLabel") or isFishLike) then
-if obj.AbsoluteSize.X >= 16 and obj.AbsoluteSize.X <= 160 and obj.AbsoluteSize.Y >= 16 and obj.AbsoluteSize.Y <= 160 then
-local cx = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
+local sz = obj.AbsoluteSize
+if not isBootName and sz.X >= 18 and sz.X <= 150 and sz.Y >= 18 and sz.Y <= 150 then
+local pos = obj.AbsolutePosition
+local cx = pos.X + (sz.X * 0.5)
+local cy = pos.Y + (sz.Y * 0.5)
+
+if cy >= playTopY and cy <= playBotY then
+local col = obj.BackgroundColor3
+if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+if obj.ImageTransparency < 0.85 then
+col = obj.ImageColor3
+end
+end
+
+-- กรองสีน้ำตาลของบูต (R เด่น G ปานกลาง B ต่ำมาก)
+local isBrownBoot = (col.R > 0.35 and col.G > 0.14 and col.G < 0.52 and col.B < 0.28 and col.R > col.G * 1.25)
+
+if not isBrownBoot then
 local matchedLane = nil
-local minDist = 75
-
+local minDist = 48
 for idx = 1, 5 do
 local lx = laneCenters[idx]
 if lx then
@@ -382,12 +404,15 @@ end
 end
 
 if matchedLane then
-local isGold = string.find(nLower, "gold", 1, true) ~= nil
-local score = (isGold and 25 or 10) - (minDist * 0.15)
+local isGold = (col.R > 0.78 and col.G > 0.65 and col.B < 0.35)
+or (string.find(nLower, "gold", 1, true) ~= nil)
+local progress = math.clamp((cy - playTopY) / math.max(1, (playBotY - playTopY)), 0, 1)
+local score = (progress * 40) + (isGold and 25 or 0) - (minDist * 0.35)
 if score > bestScore then
 bestScore = score
 bestLane = matchedLane
 bestTarget = laneButtons[matchedLane] or obj
+end
 end
 end
 end
@@ -409,7 +434,6 @@ end
 return true
 end
 
--- [3] Bait Memory จำเรียลไทม์และกดตามทันทีเมื่อ YOUR TURN!
 local function tryPlayMemoryBaitGame(mg, allText)
 local areas = getActiveMiniGameAreas(mg)
 local choices = {}
