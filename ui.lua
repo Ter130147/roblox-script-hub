@@ -222,15 +222,73 @@ round(main, 14)
 local mainStroke = stroke(main, PALETTE.Red, 1.6, 0)
 local mainStrokeGrad = addShimmerGradient(mainStroke, PALETTE.RedDark, PALETTE.RedBright, PALETTE.CrimsonDeep)
 
-local gradBg = addShimmerGradient(main, Color3.fromRGB(30, 15, 20), Color3.fromRGB(14, 13, 17), Color3.fromRGB(24, 12, 16))
+local gradBg = addShimmerGradient(main, Color3.fromRGB(36, 12, 18), Color3.fromRGB(13, 12, 15), Color3.fromRGB(28, 10, 15))
 gradBg.Rotation = 32
+
+-- ชั้นอนิเมชันพื้นหลังโทนดำ-แดง (ลำแสงวิ่ง + ประกายไฟลอย)
+local bgFxLayer = Instance.new("Frame")
+bgFxLayer.Name = "BgAnimatedFx"
+bgFxLayer.Size = UDim2.fromScale(1, 1)
+bgFxLayer.BackgroundTransparency = 1
+bgFxLayer.ClipsDescendants = true
+bgFxLayer.ZIndex = 1
+bgFxLayer.Parent = main
+
+local sweepBeam = Instance.new("Frame")
+sweepBeam.Name = "CrimsonSweep"
+sweepBeam.Size = UDim2.new(0.45, 0, 1.8, 0)
+sweepBeam.Position = UDim2.new(-0.5, 0, -0.4, 0)
+sweepBeam.Rotation = 22
+sweepBeam.BackgroundColor3 = PALETTE.Red
+sweepBeam.BackgroundTransparency = 0.84
+sweepBeam.BorderSizePixel = 0
+sweepBeam.ZIndex = 1
+sweepBeam.Parent = bgFxLayer
+
+local sweepGrad = Instance.new("UIGradient")
+sweepGrad.Transparency = NumberSequence.new({
+NumberSequenceKeypoint.new(0.0, 1),
+NumberSequenceKeypoint.new(0.35, 0.55),
+NumberSequenceKeypoint.new(0.5, 0.25),
+NumberSequenceKeypoint.new(0.65, 0.55),
+NumberSequenceKeypoint.new(1.0, 1),
+})
+sweepGrad.Parent = sweepBeam
+
+local embers = {}
+local rng = Random.new()
+for i = 1, 14 do
+local dot = Instance.new("Frame")
+local sz = rng:NextInteger(3, 6)
+dot.Name = "Ember_" .. tostring(i)
+dot.Size = UDim2.fromOffset(sz, sz)
+dot.Position = UDim2.new(rng:NextNumber(0.04, 0.96), 0, rng:NextNumber(0.15, 1.05), 0)
+dot.BackgroundColor3 = (i % 2 == 0) and PALETTE.RedBright or PALETTE.Red
+dot.BackgroundTransparency = rng:NextNumber(0.35, 0.78)
+dot.BorderSizePixel = 0
+dot.ZIndex = 1
+dot.Parent = bgFxLayer
+round(dot, math.ceil(sz * 0.5))
+
+table.insert(embers, {
+frame = dot,
+x = dot.Position.X.Scale,
+y = dot.Position.Y.Scale,
+speedY = rng:NextNumber(0.04, 0.11),
+swayAmp = rng:NextNumber(0.008, 0.022),
+swaySpeed = rng:NextNumber(1.4, 3.0),
+phase = rng:NextNumber(0, math.pi * 2),
+baseTrans = dot.BackgroundTransparency,
+})
+end
 
 local topbar = Instance.new("Frame")
 topbar.Name = "Topbar"
 topbar.Size = UDim2.new(1, 0, 0, 54)
 topbar.BackgroundColor3 = PALETTE.WindowTop
-topbar.BackgroundTransparency = 0.2
+topbar.BackgroundTransparency = 0.22
 topbar.BorderSizePixel = 0
+topbar.ZIndex = 3
 topbar.Parent = main
 
 local topDivider = Instance.new("Frame")
@@ -239,6 +297,7 @@ topDivider.Position = UDim2.new(0, 10, 1, -1)
 topDivider.BackgroundColor3 = PALETTE.Red
 topDivider.BackgroundTransparency = 0.6
 topDivider.BorderSizePixel = 0
+topDivider.ZIndex = 4
 topDivider.Parent = topbar
 
 local logoBox = Instance.new("Frame")
@@ -246,6 +305,7 @@ logoBox.Size = UDim2.fromOffset(36, 36)
 logoBox.Position = UDim2.fromOffset(14, 9)
 logoBox.BackgroundColor3 = PALETTE.Red
 logoBox.BorderSizePixel = 0
+logoBox.ZIndex = 4
 logoBox.Parent = topbar
 round(logoBox, 9)
 stroke(logoBox, PALETTE.RedBright, 1, 0.35)
@@ -257,7 +317,7 @@ logoLbl.Text = "Ter"
 logoLbl.Font = Enum.Font.GothamBlack
 logoLbl.TextSize = 13
 logoLbl.TextColor3 = Color3.new(1, 1, 1)
-logoLbl.ZIndex = 3
+logoLbl.ZIndex = 5
 logoLbl.Parent = logoBox
 
 local hubTitleLbl = Instance.new("TextLabel")
@@ -269,6 +329,7 @@ hubTitleLbl.Font = Enum.Font.GothamBlack
 hubTitleLbl.TextSize = 14
 hubTitleLbl.TextColor3 = PALETTE.RedBright
 hubTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+hubTitleLbl.ZIndex = 4
 hubTitleLbl.Parent = topbar
 
 local hubSubLbl = Instance.new("TextLabel")
@@ -280,6 +341,7 @@ hubSubLbl.Font = Enum.Font.Gotham
 hubSubLbl.TextSize = 11
 hubSubLbl.TextColor3 = PALETTE.TextSecondary
 hubSubLbl.TextXAlignment = Enum.TextXAlignment.Left
+hubSubLbl.ZIndex = 4
 hubSubLbl.Parent = topbar
 
 local function make3DWinBtn(txt, offsetX, isClose)
@@ -355,7 +417,9 @@ sidebar.Name = "Sidebar"
 sidebar.Size = UDim2.fromOffset(172, 298)
 sidebar.Position = UDim2.fromOffset(12, 62)
 sidebar.BackgroundColor3 = PALETTE.SidebarBg
+sidebar.BackgroundTransparency = 0.12
 sidebar.BorderSizePixel = 0
+sidebar.ZIndex = 3
 sidebar.Parent = main
 round(sidebar, 11)
 stroke(sidebar, PALETTE.Red, 1, 0.72)
@@ -376,6 +440,7 @@ pagesHolder.Name = "PagesHolder"
 pagesHolder.Size = UDim2.new(1, -200, 0, 298)
 pagesHolder.Position = UDim2.fromOffset(190, 62)
 pagesHolder.BackgroundTransparency = 1
+pagesHolder.ZIndex = 3
 pagesHolder.Parent = main
 
 local pages = {}
@@ -386,10 +451,12 @@ local sc = Instance.new("ScrollingFrame")
 sc.Name = "Page_" .. pageId
 sc.Size = UDim2.fromScale(1, 1)
 sc.BackgroundColor3 = PALETTE.CardBase
+sc.BackgroundTransparency = 0.15
 sc.BorderSizePixel = 0
 sc.ScrollBarThickness = 4
 sc.ScrollBarImageColor3 = PALETTE.Red
 sc.CanvasSize = UDim2.new(0, 0, 0, 280)
+sc.ZIndex = 4
 sc.Visible = false
 sc.Parent = pagesHolder
 round(sc, 11)
@@ -437,6 +504,7 @@ btn.TextSize = 12
 btn.TextColor3 = PALETTE.TextSecondary
 btn.TextXAlignment = Enum.TextXAlignment.Left
 btn.AutoButtonColor = false
+btn.ZIndex = 4
 btn.Parent = sidebar
 round(btn, 8)
 stroke(btn, PALETTE.Red, 1, 0.75)
@@ -452,6 +520,7 @@ local wrap = Instance.new("Frame")
 wrap.LayoutOrder = order
 wrap.Size = UDim2.new(1, 0, 0, height + 3)
 wrap.BackgroundTransparency = 1
+wrap.ZIndex = 5
 wrap.Parent = parentScroll
 
 local base = Instance.new("Frame")
@@ -459,6 +528,7 @@ base.Size = UDim2.new(1, 0, 0, height)
 base.Position = UDim2.fromOffset(0, 3)
 base.BackgroundColor3 = PALETTE.ShadowDeep
 base.BorderSizePixel = 0
+base.ZIndex = 5
 base.Parent = wrap
 round(base, 9)
 
@@ -466,7 +536,9 @@ local card = Instance.new("Frame")
 card.Size = UDim2.new(1, 0, 0, height)
 card.Position = UDim2.fromOffset(0, 0)
 card.BackgroundColor3 = PALETTE.RowBase
+card.BackgroundTransparency = 0.08
 card.BorderSizePixel = 0
+card.ZIndex = 6
 card.Parent = wrap
 round(card, 9)
 stroke(card, PALETTE.Red, 1, 0.78)
@@ -485,6 +557,7 @@ lbl.Font = Enum.Font.GothamBold
 lbl.TextSize = 12
 lbl.TextColor3 = PALETTE.TextPrimary
 lbl.TextXAlignment = Enum.TextXAlignment.Left
+lbl.ZIndex = 7
 lbl.Parent = row
 
 local sub = Instance.new("TextLabel")
@@ -496,6 +569,7 @@ sub.Font = Enum.Font.Gotham
 sub.TextSize = 10
 sub.TextColor3 = PALETTE.TextSecondary
 sub.TextXAlignment = Enum.TextXAlignment.Left
+sub.ZIndex = 7
 sub.Parent = row
 
 local initOn = getState()
@@ -507,6 +581,7 @@ tag.Text = initOn and "ON" or "OFF"
 tag.Font = Enum.Font.GothamBlack
 tag.TextSize = 10
 tag.TextColor3 = initOn and PALETTE.Success or PALETTE.TextMuted
+tag.ZIndex = 7
 tag.Parent = row
 
 local sw = Instance.new("TextButton")
@@ -515,6 +590,7 @@ sw.Position = UDim2.new(1, -56, 0.5, -12)
 sw.BackgroundColor3 = initOn and PALETTE.Red or PALETTE.OffTrack
 sw.Text = ""
 sw.AutoButtonColor = false
+sw.ZIndex = 7
 sw.Parent = row
 round(sw, 12)
 stroke(sw, PALETTE.RedBright, 1, 0.55)
@@ -524,6 +600,7 @@ knob.Size = UDim2.fromOffset(18, 18)
 knob.Position = initOn and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3)
 knob.BackgroundColor3 = Color3.new(1, 1, 1)
 knob.BorderSizePixel = 0
+knob.ZIndex = 8
 knob.Parent = sw
 round(knob, 9)
 
@@ -557,6 +634,7 @@ lblScan.Font = Enum.Font.GothamBold
 lblScan.TextSize = 12
 lblScan.TextColor3 = PALETTE.TextPrimary
 lblScan.TextXAlignment = Enum.TextXAlignment.Left
+lblScan.ZIndex = 7
 lblScan.Parent = rowScan
 
 local subScan = Instance.new("TextLabel")
@@ -568,6 +646,7 @@ subScan.Font = Enum.Font.Gotham
 subScan.TextSize = 10
 subScan.TextColor3 = PALETTE.TextSecondary
 subScan.TextXAlignment = Enum.TextXAlignment.Left
+subScan.ZIndex = 7
 subScan.Parent = rowScan
 
 local scanBtn = Instance.new("TextButton")
@@ -579,7 +658,7 @@ scanBtn.Font = Enum.Font.GothamBlack
 scanBtn.TextSize = 11
 scanBtn.TextColor3 = Color3.new(1, 1, 1)
 scanBtn.AutoButtonColor = false
-scanBtn.ZIndex = 6
+scanBtn.ZIndex = 7
 scanBtn.Parent = rowScan
 round(scanBtn, 8)
 stroke(scanBtn, PALETTE.RedBright, 1, 0.35)
@@ -597,6 +676,8 @@ end)
 selectPage("minigame")
 
 local rot = 0
+local sweepX = -0.55
+local fxClock = 0
 local animConn
 animConn = RunService.RenderStepped:Connect(function(dt)
 if not screenGui or not screenGui.Parent then
@@ -605,12 +686,30 @@ animConn:Disconnect()
 end
 return
 end
-rot = (rot + dt * 80) % 360
+rot = (rot + dt * 85) % 360
 mainStrokeGrad.Rotation = rot
 miniStrokeGrad.Rotation = -rot
+
+fxClock += dt
+sweepX += dt * 0.42
+if sweepX > 1.25 then
+sweepX = -0.55
+end
+sweepBeam.Position = UDim2.new(sweepX, 0, -0.4, 0)
+
+for _, em in ipairs(embers) do
+em.y -= em.speedY * dt
+if em.y < -0.06 then
+em.y = 1.04
+end
+local curX = em.x + math.sin(fxClock * em.swaySpeed + em.phase) * em.swayAmp
+em.frame.Position = UDim2.new(curX, 0, em.y, 0)
+local pulse = math.sin(fxClock * 3.2 + em.phase) * 0.14
+em.frame.BackgroundTransparency = math.clamp(em.baseTrans + pulse, 0.15, 0.92)
+end
 end)
 
-print("[UI] Mounted 3D Red Left-Menu -> Instant MiniGame & Scan")
+print("[UI] Mounted 3D Red Left-Menu -> Animated Black-Red Background")
 end
 
 return UI
