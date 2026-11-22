@@ -1,4 +1,5 @@
 return {
     AutoMiniGame = false,
-    MiniGameSpeed = 0.05,
+    MiniGameSpeed = 0.15,
+    ScanNow = false,
 }

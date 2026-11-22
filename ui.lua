@@ -14,6 +14,7 @@ local PALETTE = {
     Border = Color3.fromRGB(44, 44, 56),
     BorderAccent = Color3.fromRGB(124, 77, 255),
     Accent = Color3.fromRGB(132, 86, 255),
+    AccentSoft = Color3.fromRGB(58, 41, 102),
     OffTrack = Color3.fromRGB(54, 54, 64),
     TextPrimary = Color3.fromRGB(246, 246, 252),
     TextSecondary = Color3.fromRGB(154, 154, 170),
@@ -77,7 +78,7 @@ function UI.init(Config, hubTitle)
 
     local main = Instance.new("Frame")
     main.Name = "MainWindow"
-    main.Size = UDim2.fromOffset(540, 260)
+    main.Size = UDim2.fromOffset(540, 325)
     main.Position = UDim2.fromScale(0.5, 0.5)
     main.AnchorPoint = Vector2.new(0.5, 0.5)
     main.BackgroundColor3 = PALETTE.WindowBg
@@ -142,7 +143,7 @@ function UI.init(Config, hubTitle)
     hubSubLbl.Size = UDim2.fromOffset(280, 16)
     hubSubLbl.Position = UDim2.fromOffset(54, 28)
     hubSubLbl.BackgroundTransparency = 1
-    hubSubLbl.Text = "Auto MiniGame Mode"
+    hubSubLbl.Text = "Auto MiniGame & Scanner"
     hubSubLbl.Font = Enum.Font.Gotham
     hubSubLbl.TextSize = 11
     hubSubLbl.TextColor3 = PALETTE.TextSecondary
@@ -186,7 +187,7 @@ function UI.init(Config, hubTitle)
     minBtn.MouseButton1Click:Connect(function()
         isCollapsed = not isCollapsed
         tween(main, 0.18, {
-            Size = isCollapsed and UDim2.fromOffset(540, 52) or UDim2.fromOffset(540, 260),
+            Size = isCollapsed and UDim2.fromOffset(540, 52) or UDim2.fromOffset(540, 325),
         })
     end)
 
@@ -251,7 +252,7 @@ function UI.init(Config, hubTitle)
     -- แถวที่ 1: สวิตช์เปิด-ปิดเล่นมินิเกมอัตโนมัติ
     local row1 = Instance.new("Frame")
     row1.LayoutOrder = 1
-    row1.Size = UDim2.new(1, 0, 0, 56)
+    row1.Size = UDim2.new(1, 0, 0, 54)
     row1.BackgroundColor3 = PALETTE.RowBg
     row1.BorderSizePixel = 0
     row1.Parent = content
@@ -260,7 +261,7 @@ function UI.init(Config, hubTitle)
 
     local lbl1 = Instance.new("TextLabel")
     lbl1.Size = UDim2.new(1, -90, 0, 20)
-    lbl1.Position = UDim2.fromOffset(12, 8)
+    lbl1.Position = UDim2.fromOffset(12, 7)
     lbl1.BackgroundTransparency = 1
     lbl1.Text = "เล่นมินิเกมที่เด้งขึ้นมาอัตโนมัติ"
     lbl1.Font = Enum.Font.GothamBold
@@ -271,9 +272,9 @@ function UI.init(Config, hubTitle)
 
     local sub1 = Instance.new("TextLabel")
     sub1.Size = UDim2.new(1, -90, 0, 16)
-    sub1.Position = UDim2.fromOffset(12, 30)
+    sub1.Position = UDim2.fromOffset(12, 29)
     sub1.BackgroundTransparency = 1
-    sub1.Text = "ตรวจจับหน้าต่าง/ปุ่มมินิเกมและยิงสัญญาณอัตโนมัติทันที"
+    sub1.Text = "ตรวจจับหน้าต่างมินิเกมและยิงสัญญาณอัตโนมัติ"
     sub1.Font = Enum.Font.Gotham
     sub1.TextSize = 11
     sub1.TextColor3 = PALETTE.TextSecondary
@@ -319,19 +320,19 @@ function UI.init(Config, hubTitle)
     -- แถวที่ 2: แถบเลื่อนปรับความเร็วรอบ
     local row2 = Instance.new("Frame")
     row2.LayoutOrder = 2
-    row2.Size = UDim2.new(1, 0, 0, 56)
+    row2.Size = UDim2.new(1, 0, 0, 54)
     row2.BackgroundColor3 = PALETTE.RowBg
     row2.BorderSizePixel = 0
     row2.Parent = content
     round(row2, 8)
     stroke(row2, PALETTE.Border, 1, 0.65)
 
-    local minV, maxV = 0.02, 0.50
-    local cur = tonumber(Config.MiniGameSpeed) or 0.05
+    local minV, maxV = 0.10, 1.50
+    local cur = tonumber(Config.MiniGameSpeed) or 0.15
 
     local lbl2 = Instance.new("TextLabel")
     lbl2.Size = UDim2.new(1, -100, 0, 20)
-    lbl2.Position = UDim2.fromOffset(12, 8)
+    lbl2.Position = UDim2.fromOffset(12, 7)
     lbl2.BackgroundTransparency = 1
     lbl2.Text = "ความเร็วในการกดมินิเกม"
     lbl2.Font = Enum.Font.GothamMedium
@@ -342,7 +343,7 @@ function UI.init(Config, hubTitle)
 
     local valLbl = Instance.new("TextLabel")
     valLbl.Size = UDim2.fromOffset(80, 20)
-    valLbl.Position = UDim2.new(1, -92, 0, 8)
+    valLbl.Position = UDim2.new(1, -92, 0, 7)
     valLbl.BackgroundTransparency = 1
     valLbl.Text = string.format("%.2f วิ", cur)
     valLbl.Font = Enum.Font.GothamBold
@@ -353,7 +354,7 @@ function UI.init(Config, hubTitle)
 
     local track = Instance.new("TextButton")
     track.Size = UDim2.new(1, -24, 0, 7)
-    track.Position = UDim2.fromOffset(12, 38)
+    track.Position = UDim2.fromOffset(12, 36)
     track.BackgroundColor3 = PALETTE.OffTrack
     track.Text = ""
     track.AutoButtonColor = false
@@ -404,7 +405,66 @@ function UI.init(Config, hubTitle)
         end
     end)
 
-    print("[UI] Mounted MiniGame Only")
+    -- แถวที่ 3: ปุ่มสแกนไฟล์และโครงสร้างเกมลง Console
+    local row3 = Instance.new("Frame")
+    row3.LayoutOrder = 3
+    row3.Size = UDim2.new(1, 0, 0, 52)
+    row3.BackgroundColor3 = PALETTE.RowBg
+    row3.BorderSizePixel = 0
+    row3.Parent = content
+    round(row3, 8)
+    stroke(row3, PALETTE.Border, 1, 0.65)
+
+    local lbl3 = Instance.new("TextLabel")
+    lbl3.Size = UDim2.new(1, -155, 0, 20)
+    lbl3.Position = UDim2.fromOffset(12, 7)
+    lbl3.BackgroundTransparency = 1
+    lbl3.Text = "สแกนไฟล์และโครงสร้างเกม"
+    lbl3.Font = Enum.Font.GothamBold
+    lbl3.TextSize = 13
+    lbl3.TextColor3 = PALETTE.TextPrimary
+    lbl3.TextXAlignment = Enum.TextXAlignment.Left
+    lbl3.Parent = row3
+
+    local sub3 = Instance.new("TextLabel")
+    sub3.Size = UDim2.new(1, -155, 0, 16)
+    sub3.Position = UDim2.fromOffset(12, 29)
+    sub3.BackgroundTransparency = 1
+    sub3.Text = "แสดงรายชื่อ Remote, GUI และวัตถุในแมพที่ Console"
+    sub3.Font = Enum.Font.Gotham
+    sub3.TextSize = 11
+    sub3.TextColor3 = PALETTE.TextSecondary
+    sub3.TextXAlignment = Enum.TextXAlignment.Left
+    sub3.Parent = row3
+
+    local scanBtn = Instance.new("TextButton")
+    scanBtn.Size = UDim2.fromOffset(132, 32)
+    scanBtn.Position = UDim2.new(1, -144, 0.5, -16)
+    scanBtn.BackgroundColor3 = PALETTE.AccentSoft
+    scanBtn.Text = "สแกนเกม"
+    scanBtn.Font = Enum.Font.GothamBold
+    scanBtn.TextSize = 12
+    scanBtn.TextColor3 = PALETTE.TextPrimary
+    scanBtn.Parent = row3
+    round(scanBtn, 7)
+    stroke(scanBtn, PALETTE.BorderAccent, 1, 0.35)
+
+    scanBtn.MouseButton1Click:Connect(function()
+        Config.ScanNow = true
+        scanBtn.Text = "กำลังสแกน..."
+        task.delay(0.8, function()
+            if scanBtn and scanBtn.Parent then
+                scanBtn.Text = "สแกนเกม ✓"
+                task.delay(0.8, function()
+                    if scanBtn and scanBtn.Parent then
+                        scanBtn.Text = "สแกนเกม"
+                    end
+                end)
+            end
+        end)
+    end)
+
+    print("[UI] Mounted with Scan Button")
 end
 
 return UI
