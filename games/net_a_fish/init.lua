@@ -165,7 +165,14 @@ return table.concat(titles, " | ")
 end
 
 local function tryClickPlayInMiniGame(mg)
-if tick() - lastAcceptTime < 0.35 then
+if tick() - lastAcceptTime < 0.6 then
+return false
+end
+
+local resultFrame = mg:FindFirstChild("Window")
+and mg.Window:FindFirstChild("Body")
+and mg.Window.Body:FindFirstChild("Result")
+if resultFrame and resultFrame:IsA("GuiObject") and resultFrame.Visible then
 return false
 end
 
@@ -177,21 +184,22 @@ if obj:IsA("TextButton") or obj:IsA("TextLabel") then
 txt = obj.Text or ""
 end
 local low = string.lower(txt)
+local isBannerText = string.find(low, "play for a medal", 1, true) ~= nil
+or string.find(low, "the better you do", 1, true) ~= nil
 
-local isPlayBtn = string.find(nLower, "playbutton", 1, true) ~= nil
-or string.find(low, "play", 1, true) ~= nil
-or string.find(txt, "เล่น", 1, true) ~= nil
-or string.find(txt, "เริ่ม", 1, true) ~= nil
-or string.find(txt, "เข้าร่วม", 1, true) ~= nil
-or string.find(txt, "ยอมรับ", 1, true) ~= nil
+local isPlayBtn = (not isBannerText) and (
+string.find(nLower, "playbutton", 1, true) ~= nil
+or (string.find(low, "play", 1, true) ~= nil and #txt <= 32)
+or (string.find(txt, "เล่น", 1, true) ~= nil and #txt <= 32)
+or (string.find(txt, "เริ่ม", 1, true) ~= nil and #txt <= 32)
+)
 
 if isPlayBtn then
 local target = obj:IsA("GuiButton") and obj
 or obj:FindFirstAncestorWhichIsA("GuiButton")
-or (obj.Parent and obj.Parent:IsA("GuiObject") and obj.Parent)
-if target and not containsDangerText(target.Parent) then
+if target and target:IsA("GuiButton") and target.Name ~= "Backdrop" and not containsDangerText(target.Parent) then
 lastAcceptTime = tick()
-print("[MiniGame] กดปุ่มเริ่มรอบทันที:", target.Name, "|", txt)
+print("[MiniGame] กดปุ่มเริ่มรอบ:", target.Name, "|", txt)
 instantClickMiniGame(target)
 return true
 end
