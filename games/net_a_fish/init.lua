@@ -386,6 +386,7 @@ col = obj.ImageColor3
 end
 end
 
+-- กรองสีน้ำตาลของบูต (R เด่น G ปานกลาง B ต่ำมาก)
 local isBrownBoot = (col.R > 0.35 and col.G > 0.14 and col.G < 0.52 and col.B < 0.28 and col.R > col.G * 1.25)
 
 if not isBrownBoot then
