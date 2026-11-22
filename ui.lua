@@ -101,11 +101,10 @@ function UI.init(Config, hubTitle)
     screenGui.DisplayOrder = 999
     screenGui.Parent = playerGui
 
-    -- ปุ่มโลโก้สี่เหลี่ยมเล็กๆ ตอนย่อหน้าต่าง
     local miniIcon = Instance.new("TextButton")
     miniIcon.Name = "MiniIconBtn"
-    miniIcon.Size = UDim2.fromOffset(54, 54)
-    miniIcon.Position = UDim2.new(0, 18, 0.2, 0)
+    miniIcon.Size = UDim2.fromOffset(52, 52)
+    miniIcon.Position = UDim2.new(0, 18, 0.25, 0)
     miniIcon.BackgroundColor3 = PALETTE.TopbarBg
     miniIcon.Text = ""
     miniIcon.AutoButtonColor = false
@@ -115,20 +114,20 @@ function UI.init(Config, hubTitle)
     stroke(miniIcon, PALETTE.BorderAccent, 1.5, 0.15)
 
     local miniBadge = Instance.new("Frame")
-    miniBadge.Size = UDim2.fromOffset(38, 38)
+    miniBadge.Size = UDim2.fromOffset(36, 36)
     miniBadge.Position = UDim2.fromScale(0.5, 0.5)
     miniBadge.AnchorPoint = Vector2.new(0.5, 0.5)
     miniBadge.BackgroundColor3 = PALETTE.Accent
     miniBadge.BorderSizePixel = 0
     miniBadge.Parent = miniIcon
-    round(miniBadge, 9)
+    round(miniBadge, 8)
 
     local miniText = Instance.new("TextLabel")
     miniText.Size = UDim2.fromScale(1, 1)
     miniText.BackgroundTransparency = 1
     miniText.Text = "TH"
     miniText.Font = Enum.Font.GothamBlack
-    miniText.TextSize = 15
+    miniText.TextSize = 14
     miniText.TextColor3 = Color3.new(1, 1, 1)
     miniText.Parent = miniBadge
 
@@ -494,7 +493,7 @@ function UI.init(Config, hubTitle)
         end)
     end)
 
-    print("[UI] Mounted with Compact Mini Icon")
+    print("[UI] Mounted Mini Icon v2")
 end
 
 return UI
