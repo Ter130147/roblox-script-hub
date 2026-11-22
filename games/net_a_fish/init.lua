@@ -81,8 +81,14 @@ end
 local fired = false
 pcall(function()
 if getconnections then
-local btn = guiObj:IsA("GuiButton") and guiObj or guiObj:FindFirstChildWhichIsA("GuiButton", true)
-if btn and btn.Active then
+local btn = guiObj:IsA("GuiButton") and guiObj
+or guiObj:FindFirstAncestorWhichIsA("GuiButton")
+or guiObj:FindFirstChildWhichIsA("GuiButton", true)
+if btn then
+for _, conn in ipairs(getconnections(btn.MouseButton1Down)) do
+conn:Fire()
+fired = true
+end
 for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
 conn:Fire()
 fired = true
@@ -159,7 +165,7 @@ return table.concat(titles, " | ")
 end
 
 local function tryClickPlayInMiniGame(mg)
-if tick() - lastAcceptTime < 0.6 then
+if tick() - lastAcceptTime < 0.35 then
 return false
 end
 
@@ -175,6 +181,7 @@ local low = string.lower(txt)
 local isPlayBtn = string.find(nLower, "playbutton", 1, true) ~= nil
 or string.find(low, "play", 1, true) ~= nil
 or string.find(txt, "เล่น", 1, true) ~= nil
+or string.find(txt, "เริ่ม", 1, true) ~= nil
 or string.find(txt, "เข้าร่วม", 1, true) ~= nil
 or string.find(txt, "ยอมรับ", 1, true) ~= nil
 
@@ -184,6 +191,7 @@ or obj:FindFirstAncestorWhichIsA("GuiButton")
 or (obj.Parent and obj.Parent:IsA("GuiObject") and obj.Parent)
 if target and not containsDangerText(target.Parent) then
 lastAcceptTime = tick()
+print("[MiniGame] กดปุ่มเริ่มรอบทันที:", target.Name, "|", txt)
 instantClickMiniGame(target)
 return true
 end
@@ -193,10 +201,13 @@ end
 return false
 end
 
--- [1] REEL! ตอบสนองทันทีเมื่อเข็มเข้าโซนเขียว
+-- [1] REEL! / ม้วนที่สมบูรณ์แบบ ตอบสนองทันทีเมื่อเข็มเข้าโซนเขียว
 local function tryPlayReelGame(mg, allText)
 local areas = getActiveMiniGameAreas(mg)
 local isReelMode = string.find(allText, "REEL", 1, true) ~= nil
+or string.find(allText, "ม้วนที่สมบูรณ์แบบ", 1, true) ~= nil
+or string.find(allText, "โซนสีเขียว", 1, true) ~= nil
+
 local reelBtn = nil
 local greenZone = nil
 local needle = nil
@@ -205,11 +216,24 @@ for _, area in ipairs(areas) do
 for _, obj in ipairs(area:GetDescendants()) do
 if obj:IsA("GuiObject") and obj.Visible then
 local nLower = string.lower(obj.Name)
-if obj:IsA("GuiButton") and (string.find(nLower, "reel", 1, true) or string.find(nLower, "tap", 1, true) or string.find(nLower, "btn", 1, true)) then
+local txtUpper = string.upper((obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or "")
+
+if obj:IsA("GuiButton") and (
+string.find(nLower, "reel", 1, true)
+or string.find(nLower, "tap", 1, true)
+or string.find(nLower, "btn", 1, true)
+or string.find(nLower, "action", 1, true)
+or string.find(nLower, "stop", 1, true)
+) then
 if not containsDangerText(obj) then
 reelBtn = obj
 end
-elseif (obj:IsA("TextLabel") or obj:IsA("TextButton")) and string.find(string.upper(obj.Text or ""), "REEL", 1, true) then
+elseif (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (
+string.find(txtUpper, "REEL", 1, true)
+or string.find(txtUpper, "ม้วน", 1, true)
+or string.find(txtUpper, "ดึง", 1, true)
+or string.find(txtUpper, "หยุด", 1, true)
+) then
 local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
 if btn and not containsDangerText(btn) then
 reelBtn = btn
@@ -221,8 +245,9 @@ or string.find(nLower, "pointer", 1, true)
 or string.find(nLower, "marker", 1, true)
 or string.find(nLower, "cursor", 1, true)
 or string.find(nLower, "indicator", 1, true)
+or string.find(nLower, "bar", 1, true)
 then
-if obj.AbsoluteSize.X <= 28 and obj.AbsoluteSize.Y >= 12 then
+if obj.AbsoluteSize.X <= 36 and obj.AbsoluteSize.Y >= 10 then
 needle = obj
 end
 end
@@ -562,7 +587,7 @@ task.wait(0.1)
 end
 end)
 
-print("[Net a Fish] โหลดระบบมินิเกมโหมดตอบสนองทันที (Zero-Delay Heartbeat) เรียบร้อย")
+print("[Net a Fish] โหลดระบบมินิเกมโหมดตอบสนองทันที (Zero-Delay Heartbeat + Thai/EN) เรียบร้อย")
 end
 
 return GameModule
