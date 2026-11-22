@@ -329,6 +329,25 @@ local function tryPlayMemoryBaitGame(mg, Config)
     local orderNames = { "WORM", "SHRIMP", "CRICKET", "MINNOW" }
     local memKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four }
 
+    local area = mg:FindFirstChild("Window")
+        and mg.Window:FindFirstChild("Body")
+        and mg.Window.Body:FindFirstChild("Area")
+
+    if area then
+        for idx = 1, 4 do
+            local baitBtn = area:FindFirstChild("Bait" .. tostring(idx))
+            if baitBtn and baitBtn:IsA("GuiObject") and baitBtn.Visible then
+                local face = baitBtn:FindFirstChild("Face")
+                choices[idx] = {
+                    index = idx,
+                    name = orderNames[idx],
+                    card = (face and face:IsA("GuiObject")) and face or baitBtn,
+                    target = baitBtn,
+                }
+            end
+        end
+    end
+
     for _, obj in ipairs(mg:GetDescendants()) do
         if obj:IsA("GuiObject") and obj.Visible then
             local txt = ""
@@ -344,17 +363,21 @@ local function tryPlayMemoryBaitGame(mg, Config)
                 yourTurn = true
             end
 
-            local upperTxt = string.upper(txt)
-            for idx, keyWord in ipairs(orderNames) do
-                if string.find(upperTxt, keyWord, 1, true) then
-                    local card = obj.Parent and obj.Parent:IsA("GuiObject") and obj.Parent or obj
-                    local btn = card:IsA("GuiButton") and card or card:FindFirstChildWhichIsA("GuiButton", true)
-                    choices[idx] = {
-                        index = idx,
-                        name = keyWord,
-                        card = card,
-                        target = btn or card,
-                    }
+            if next(choices) == nil then
+                local upperTxt = string.upper(txt)
+                for idx, keyWord in ipairs(orderNames) do
+                    if string.find(upperTxt, keyWord, 1, true) then
+                        local btn = obj:FindFirstAncestorWhichIsA("GuiButton")
+                            or (obj.Parent and obj.Parent.Parent and obj.Parent.Parent:IsA("GuiButton") and obj.Parent.Parent)
+                            or (obj.Parent and obj.Parent:IsA("GuiObject") and obj.Parent)
+                            or obj
+                        choices[idx] = {
+                            index = idx,
+                            name = keyWord,
+                            card = obj.Parent and obj.Parent:IsA("GuiObject") and obj.Parent or obj,
+                            target = btn,
+                        }
+                    end
                 end
             end
         end
@@ -364,13 +387,33 @@ local function tryPlayMemoryBaitGame(mg, Config)
     for idx = 1, 4 do
         local item = choices[idx]
         local c = item and item.card
+        local rootBtn = item and item.target
         if c and c.Visible then
             local bg = c.BackgroundColor3
             local brightness = (bg.R + bg.G + bg.B) / 3
             local highlighted = brightness > 0.80 or c.BackgroundTransparency < 0.08
 
+            if not highlighted and rootBtn and rootBtn:IsA("GuiObject") then
+                local rBg = rootBtn.BackgroundColor3
+                if ((rBg.R + rBg.G + rBg.B) / 3) > 0.80 or rootBtn.BackgroundTransparency < 0.08 then
+                    highlighted = true
+                end
+            end
+
             if not highlighted then
                 for _, d in ipairs(c:GetDescendants()) do
+                    if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.0 then
+                        highlighted = true
+                        break
+                    elseif d:IsA("UIScale") and d.Scale > 1.03 then
+                        highlighted = true
+                        break
+                    end
+                end
+            end
+
+            if not highlighted and rootBtn then
+                for _, d in ipairs(rootBtn:GetDescendants()) do
                     if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.0 then
                         highlighted = true
                         break
