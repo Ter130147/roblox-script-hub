@@ -222,10 +222,10 @@ round(main, 14)
 local mainStroke = stroke(main, PALETTE.Red, 1.6, 0)
 local mainStrokeGrad = addShimmerGradient(mainStroke, PALETTE.RedDark, PALETTE.RedBright, PALETTE.CrimsonDeep)
 
-local gradBg = addShimmerGradient(main, Color3.fromRGB(36, 12, 18), Color3.fromRGB(13, 12, 15), Color3.fromRGB(28, 10, 15))
+local gradBg = addShimmerGradient(main, Color3.fromRGB(48, 12, 20), Color3.fromRGB(14, 12, 16), Color3.fromRGB(38, 10, 16))
 gradBg.Rotation = 32
 
--- ชั้นอนิเมชันพื้นหลังโทนดำ-แดง (ลำแสงวิ่ง + ประกายไฟลอย)
+-- ชั้นอนิเมชันพื้นหลังโทนดำ-แดงแบบจัดเต็ม
 local bgFxLayer = Instance.new("Frame")
 bgFxLayer.Name = "BgAnimatedFx"
 bgFxLayer.Size = UDim2.fromScale(1, 1)
@@ -234,13 +234,42 @@ bgFxLayer.ClipsDescendants = true
 bgFxLayer.ZIndex = 1
 bgFxLayer.Parent = main
 
+local gridHolder = Instance.new("Frame")
+gridHolder.Name = "CrimsonGrid"
+gridHolder.Size = UDim2.fromScale(1, 1)
+gridHolder.BackgroundTransparency = 1
+gridHolder.ZIndex = 1
+gridHolder.Parent = bgFxLayer
+
+for gx = 0.1, 0.9, 0.1 do
+local vLine = Instance.new("Frame")
+vLine.Size = UDim2.new(0, 1, 1, 0)
+vLine.Position = UDim2.new(gx, 0, 0, 0)
+vLine.BackgroundColor3 = PALETTE.Red
+vLine.BackgroundTransparency = 0.89
+vLine.BorderSizePixel = 0
+vLine.ZIndex = 1
+vLine.Parent = gridHolder
+end
+
+for gy = 0.14, 0.92, 0.14 do
+local hLine = Instance.new("Frame")
+hLine.Size = UDim2.new(1, 0, 0, 1)
+hLine.Position = UDim2.new(0, 0, gy, 0)
+hLine.BackgroundColor3 = PALETTE.Red
+hLine.BackgroundTransparency = 0.89
+hLine.BorderSizePixel = 0
+hLine.ZIndex = 1
+hLine.Parent = gridHolder
+end
+
 local sweepBeam = Instance.new("Frame")
-sweepBeam.Name = "CrimsonSweep"
-sweepBeam.Size = UDim2.new(0.45, 0, 1.8, 0)
-sweepBeam.Position = UDim2.new(-0.5, 0, -0.4, 0)
-sweepBeam.Rotation = 22
-sweepBeam.BackgroundColor3 = PALETTE.Red
-sweepBeam.BackgroundTransparency = 0.84
+sweepBeam.Name = "CrimsonSweep1"
+sweepBeam.Size = UDim2.new(0.48, 0, 1.9, 0)
+sweepBeam.Position = UDim2.new(-0.5, 0, -0.45, 0)
+sweepBeam.Rotation = 24
+sweepBeam.BackgroundColor3 = PALETTE.RedBright
+sweepBeam.BackgroundTransparency = 0.72
 sweepBeam.BorderSizePixel = 0
 sweepBeam.ZIndex = 1
 sweepBeam.Parent = bgFxLayer
@@ -248,23 +277,81 @@ sweepBeam.Parent = bgFxLayer
 local sweepGrad = Instance.new("UIGradient")
 sweepGrad.Transparency = NumberSequence.new({
 NumberSequenceKeypoint.new(0.0, 1),
-NumberSequenceKeypoint.new(0.35, 0.55),
-NumberSequenceKeypoint.new(0.5, 0.25),
-NumberSequenceKeypoint.new(0.65, 0.55),
+NumberSequenceKeypoint.new(0.32, 0.50),
+NumberSequenceKeypoint.new(0.5, 0.14),
+NumberSequenceKeypoint.new(0.68, 0.50),
 NumberSequenceKeypoint.new(1.0, 1),
 })
 sweepGrad.Parent = sweepBeam
 
+local sweepBeam2 = Instance.new("Frame")
+sweepBeam2.Name = "CrimsonSweep2"
+sweepBeam2.Size = UDim2.new(0.32, 0, 1.9, 0)
+sweepBeam2.Position = UDim2.new(1.1, 0, -0.45, 0)
+sweepBeam2.Rotation = -22
+sweepBeam2.BackgroundColor3 = PALETTE.Red
+sweepBeam2.BackgroundTransparency = 0.78
+sweepBeam2.BorderSizePixel = 0
+sweepBeam2.ZIndex = 1
+sweepBeam2.Parent = bgFxLayer
+
+local sweepGrad2 = Instance.new("UIGradient")
+sweepGrad2.Transparency = NumberSequence.new({
+NumberSequenceKeypoint.new(0.0, 1),
+NumberSequenceKeypoint.new(0.5, 0.22),
+NumberSequenceKeypoint.new(1.0, 1),
+})
+sweepGrad2.Parent = sweepBeam2
+
+local scanBar = Instance.new("Frame")
+scanBar.Name = "HorizontalScanBar"
+scanBar.Size = UDim2.new(1, 0, 0, 14)
+scanBar.Position = UDim2.new(0, 0, 0, 0)
+scanBar.BackgroundColor3 = PALETTE.RedBright
+scanBar.BackgroundTransparency = 0.76
+scanBar.BorderSizePixel = 0
+scanBar.ZIndex = 1
+scanBar.Parent = bgFxLayer
+
+local scanGrad = Instance.new("UIGradient")
+scanGrad.Rotation = 90
+scanGrad.Transparency = NumberSequence.new({
+NumberSequenceKeypoint.new(0.0, 1),
+NumberSequenceKeypoint.new(0.5, 0.25),
+NumberSequenceKeypoint.new(1.0, 1),
+})
+scanGrad.Parent = scanBar
+
+local rings = {}
+for rIdx = 1, 3 do
+local ring = Instance.new("Frame")
+ring.Name = "RadarRing_" .. tostring(rIdx)
+ring.AnchorPoint = Vector2.new(0.5, 0.5)
+ring.Position = UDim2.fromScale(0.62, 0.56)
+ring.Size = UDim2.fromOffset(40, 40)
+ring.BackgroundTransparency = 1
+ring.BorderSizePixel = 0
+ring.ZIndex = 1
+ring.Parent = bgFxLayer
+round(ring, 999)
+local rStroke = stroke(ring, PALETTE.RedBright, 1.5, 0.65)
+table.insert(rings, {
+frame = ring,
+stroke = rStroke,
+phase = (rIdx - 1) / 3,
+})
+end
+
 local embers = {}
 local rng = Random.new()
-for i = 1, 14 do
+for i = 1, 34 do
 local dot = Instance.new("Frame")
-local sz = rng:NextInteger(3, 6)
+local sz = rng:NextInteger(3, 8)
 dot.Name = "Ember_" .. tostring(i)
 dot.Size = UDim2.fromOffset(sz, sz)
-dot.Position = UDim2.new(rng:NextNumber(0.04, 0.96), 0, rng:NextNumber(0.15, 1.05), 0)
-dot.BackgroundColor3 = (i % 2 == 0) and PALETTE.RedBright or PALETTE.Red
-dot.BackgroundTransparency = rng:NextNumber(0.35, 0.78)
+dot.Position = UDim2.new(rng:NextNumber(0.02, 0.98), 0, rng:NextNumber(0.05, 1.05), 0)
+dot.BackgroundColor3 = (i % 3 == 0) and Color3.fromRGB(255, 130, 145) or ((i % 2 == 0) and PALETTE.RedBright or PALETTE.Red)
+dot.BackgroundTransparency = rng:NextNumber(0.18, 0.55)
 dot.BorderSizePixel = 0
 dot.ZIndex = 1
 dot.Parent = bgFxLayer
@@ -274,9 +361,9 @@ table.insert(embers, {
 frame = dot,
 x = dot.Position.X.Scale,
 y = dot.Position.Y.Scale,
-speedY = rng:NextNumber(0.04, 0.11),
-swayAmp = rng:NextNumber(0.008, 0.022),
-swaySpeed = rng:NextNumber(1.4, 3.0),
+speedY = rng:NextNumber(0.06, 0.18),
+swayAmp = rng:NextNumber(0.012, 0.032),
+swaySpeed = rng:NextNumber(1.6, 3.6),
 phase = rng:NextNumber(0, math.pi * 2),
 baseTrans = dot.BackgroundTransparency,
 })
@@ -286,7 +373,7 @@ local topbar = Instance.new("Frame")
 topbar.Name = "Topbar"
 topbar.Size = UDim2.new(1, 0, 0, 54)
 topbar.BackgroundColor3 = PALETTE.WindowTop
-topbar.BackgroundTransparency = 0.22
+topbar.BackgroundTransparency = 0.24
 topbar.BorderSizePixel = 0
 topbar.ZIndex = 3
 topbar.Parent = main
@@ -295,7 +382,7 @@ local topDivider = Instance.new("Frame")
 topDivider.Size = UDim2.new(1, -20, 0, 1)
 topDivider.Position = UDim2.new(0, 10, 1, -1)
 topDivider.BackgroundColor3 = PALETTE.Red
-topDivider.BackgroundTransparency = 0.6
+topDivider.BackgroundTransparency = 0.55
 topDivider.BorderSizePixel = 0
 topDivider.ZIndex = 4
 topDivider.Parent = topbar
@@ -417,7 +504,7 @@ sidebar.Name = "Sidebar"
 sidebar.Size = UDim2.fromOffset(172, 298)
 sidebar.Position = UDim2.fromOffset(12, 62)
 sidebar.BackgroundColor3 = PALETTE.SidebarBg
-sidebar.BackgroundTransparency = 0.12
+sidebar.BackgroundTransparency = 0.22
 sidebar.BorderSizePixel = 0
 sidebar.ZIndex = 3
 sidebar.Parent = main
@@ -451,7 +538,7 @@ local sc = Instance.new("ScrollingFrame")
 sc.Name = "Page_" .. pageId
 sc.Size = UDim2.fromScale(1, 1)
 sc.BackgroundColor3 = PALETTE.CardBase
-sc.BackgroundTransparency = 0.15
+sc.BackgroundTransparency = 0.25
 sc.BorderSizePixel = 0
 sc.ScrollBarThickness = 4
 sc.ScrollBarImageColor3 = PALETTE.Red
@@ -536,7 +623,7 @@ local card = Instance.new("Frame")
 card.Size = UDim2.new(1, 0, 0, height)
 card.Position = UDim2.fromOffset(0, 0)
 card.BackgroundColor3 = PALETTE.RowBase
-card.BackgroundTransparency = 0.08
+card.BackgroundTransparency = 0.14
 card.BorderSizePixel = 0
 card.ZIndex = 6
 card.Parent = wrap
@@ -677,6 +764,8 @@ selectPage("minigame")
 
 local rot = 0
 local sweepX = -0.55
+local sweep2X = 1.15
+local scanY = -0.05
 local fxClock = 0
 local animConn
 animConn = RunService.RenderStepped:Connect(function(dt)
@@ -686,16 +775,37 @@ animConn:Disconnect()
 end
 return
 end
-rot = (rot + dt * 85) % 360
+rot = (rot + dt * 95) % 360
 mainStrokeGrad.Rotation = rot
 miniStrokeGrad.Rotation = -rot
 
 fxClock += dt
-sweepX += dt * 0.42
-if sweepX > 1.25 then
+
+sweepX += dt * 0.52
+if sweepX > 1.28 then
 sweepX = -0.55
 end
-sweepBeam.Position = UDim2.new(sweepX, 0, -0.4, 0)
+sweepBeam.Position = UDim2.new(sweepX, 0, -0.45, 0)
+
+sweep2X -= dt * 0.36
+if sweep2X < -0.45 then
+sweep2X = 1.18
+end
+sweepBeam2.Position = UDim2.new(sweep2X, 0, -0.45, 0)
+
+scanY += dt * 0.28
+if scanY > 1.05 then
+scanY = -0.06
+end
+scanBar.Position = UDim2.new(0, 0, scanY, 0)
+gridHolder.Position = UDim2.new(math.sin(fxClock * 0.7) * 0.008, 0, math.cos(fxClock * 0.6) * 0.008, 0)
+
+for _, rg in ipairs(rings) do
+local prog = (fxClock * 0.42 + rg.phase) % 1
+local szPx = 40 + prog * 310
+rg.frame.Size = UDim2.fromOffset(szPx, szPx)
+rg.stroke.Transparency = 0.38 + prog * 0.62
+end
 
 for _, em in ipairs(embers) do
 em.y -= em.speedY * dt
@@ -704,12 +814,12 @@ em.y = 1.04
 end
 local curX = em.x + math.sin(fxClock * em.swaySpeed + em.phase) * em.swayAmp
 em.frame.Position = UDim2.new(curX, 0, em.y, 0)
-local pulse = math.sin(fxClock * 3.2 + em.phase) * 0.14
-em.frame.BackgroundTransparency = math.clamp(em.baseTrans + pulse, 0.15, 0.92)
+local pulse = math.sin(fxClock * 4.2 + em.phase) * 0.16
+em.frame.BackgroundTransparency = math.clamp(em.baseTrans + pulse, 0.08, 0.78)
 end
 end)
 
-print("[UI] Mounted 3D Red Left-Menu -> Animated Black-Red Background")
+print("[UI] Mounted 3D Red Left-Menu -> Heavy Black-Red Animated FX")
 end
 
 return UI
