@@ -1,3 +1,4 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -7,9 +8,25 @@ local started = false
 local sequenceQueue = {}
 local lastHighlightedKey = nil
 local lastActionTime = 0
+local lastAcceptTime = 0
+
+local BLOCKED_GUIS = {
+    TerHubProUI = true,
+    StoreUI = true,
+    PassOffer = true,
+    PearlShopUI = true,
+    BlackMarketUI = true,
+    OfflinePromoUI = true,
+    AutoThrowPromo = true,
+    SeasonPassUI = true,
+    AvatarMenuUI = true,
+    SettingsUI = true,
+    TradeUI = true,
+    PurchasePrompt = true,
+    RobloxGui = true,
+}
 
 local function scanGameStructure()
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
     print("=== 1. REMOTES IN REPLICATEDSTORAGE ===")
     local r = ReplicatedStorage:FindFirstChild("Remotes")
     if r then
@@ -39,18 +56,6 @@ local function scanGameStructure()
     print("=== SCAN COMPLETE ===")
 end
 
-local function getMiniGameGui()
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then
-        return nil
-    end
-    local mg = pg:FindFirstChild("MiniGameUI")
-    if mg and mg:IsA("ScreenGui") and mg.Enabled then
-        return mg
-    end
-    return nil
-end
-
 local function fireGuiBtn(btn)
     if not btn or not btn.Visible or not btn.Active then
         return
@@ -65,6 +70,103 @@ local function fireGuiBtn(btn)
             end
         end
     end)
+end
+
+local function containsDangerText(container)
+    if not container then
+        return true
+    end
+    for _, d in ipairs(container:GetDescendants()) do
+        if d:IsA("TextLabel") or d:IsA("TextButton") then
+            local t = string.lower(d.Text or "")
+            if string.find(t, "robux", 1, true)
+                or string.find(t, "r$", 1, true)
+                or string.find(t, "ซื้อ", 1, true)
+                or string.find(t, "buy", 1, true)
+                or string.find(t, "skip", 1, true)
+                or string.find(t, "ข้าม", 1, true)
+                or string.find(t, "เติม", 1, true)
+            then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function tryAcceptIncomingMiniGame()
+    if tick() - lastAcceptTime < 1.2 then
+        return
+    end
+
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then
+        return
+    end
+
+    local mg = pg:FindFirstChild("MiniGameUI")
+    if mg and mg:IsA("ScreenGui") and mg.Enabled then
+        return
+    end
+
+    local acceptLabels = {
+        ["เล่น"] = true,
+        ["เข้าร่วม"] = true,
+        ["ยอมรับ"] = true,
+        ["ตกลง"] = true,
+        ["play"] = true,
+        ["join"] = true,
+        ["accept"] = true,
+        ["enter"] = true,
+        ["start"] = true,
+    }
+
+    for _, gui in ipairs(pg:GetChildren()) do
+        if gui:IsA("ScreenGui") and gui.Enabled and not BLOCKED_GUIS[gui.Name] then
+            local hasMiniGameHint = false
+            local candidateBtn = nil
+
+            for _, obj in ipairs(gui:GetDescendants()) do
+                if obj:IsA("GuiObject") and obj.Visible then
+                    if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+                        local raw = obj.Text or ""
+                        local low = string.lower((raw:gsub("^%s*(.-)%s*$", "%1")))
+
+                        if string.find(raw, "มินิเกม", 1, true)
+                            or string.find(low, "minigame", 1, true)
+                            or string.find(low, "mini game", 1, true)
+                            or string.find(raw, "ช่วยความจำเหยื่อ", 1, true)
+                            or string.find(raw, "การโยนที่สมบูรณ์แบบ", 1, true)
+                        then
+                            hasMiniGameHint = true
+                        end
+
+                        if obj:IsA("TextButton") and obj.Active and acceptLabels[low] then
+                            candidateBtn = obj
+                        end
+                    end
+                end
+            end
+
+            if hasMiniGameHint and candidateBtn and not containsDangerText(candidateBtn.Parent) then
+                lastAcceptTime = tick()
+                fireGuiBtn(candidateBtn)
+                return
+            end
+        end
+    end
+end
+
+local function getMiniGameGui()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then
+        return nil
+    end
+    local mg = pg:FindFirstChild("MiniGameUI")
+    if mg and mg:IsA("ScreenGui") and mg.Enabled then
+        return mg
+    end
+    return nil
 end
 
 local function findReelMiniGame(mg)
@@ -209,6 +311,7 @@ local function stepMiniGame(Config)
     if not mg then
         sequenceQueue = {}
         lastHighlightedKey = nil
+        tryAcceptIncomingMiniGame()
         return
     end
 
@@ -233,7 +336,7 @@ function GameModule.init(Config, Utils)
 
             if Config and Config.AutoMiniGame then
                 pcall(stepMiniGame, Config)
-                task.wait(0.03)
+                task.wait(0.04)
             else
                 sequenceQueue = {}
                 lastHighlightedKey = nil
@@ -242,7 +345,7 @@ function GameModule.init(Config, Utils)
         end
     end)
 
-    print("[Net a Fish] โหลดโหมด MiniGameUI รองรับ REEL! และช่วยความจำเหยื่อเรียบร้อย")
+    print("[Net a Fish] โหลดระบบกดรับมินิเกมแบบปลอดภัย + เล่นอัตโนมัติเรียบร้อย")
 end
 
 return GameModule
