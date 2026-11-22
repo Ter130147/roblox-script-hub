@@ -46,6 +46,45 @@ local function tween(inst, time, props)
     return tw
 end
 
+local function makeDraggable(dragHandle, targetFrame)
+    local dragging, dragOrigin, startPos = false, nil, nil
+    local moved = false
+
+    dragHandle.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            moved = false
+            dragOrigin = inp.Position
+            startPos = targetFrame.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(inp)
+        if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+            local d = inp.Position - dragOrigin
+            if d.Magnitude > 4 then
+                moved = true
+            end
+            targetFrame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + d.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + d.Y
+            )
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    return function()
+        return moved
+    end
+end
+
 function UI.init(Config, hubTitle)
     local titleText = hubTitle or "TER HUB"
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -62,19 +101,36 @@ function UI.init(Config, hubTitle)
     screenGui.DisplayOrder = 999
     screenGui.Parent = playerGui
 
-    local quickToggle = Instance.new("TextButton")
-    quickToggle.Name = "QuickToggleBtn"
-    quickToggle.Size = UDim2.fromOffset(118, 34)
-    quickToggle.Position = UDim2.new(0, 16, 0.5, -17)
-    quickToggle.BackgroundColor3 = PALETTE.TopbarBg
-    quickToggle.Text = "✦  " .. titleText
-    quickToggle.Font = Enum.Font.GothamBold
-    quickToggle.TextSize = 12
-    quickToggle.TextColor3 = PALETTE.TextPrimary
-    quickToggle.Visible = false
-    quickToggle.Parent = screenGui
-    round(quickToggle, 8)
-    stroke(quickToggle, PALETTE.BorderAccent, 1.2, 0.25)
+    -- ปุ่มโลโก้สี่เหลี่ยมเล็กๆ ตอนย่อหน้าต่าง
+    local miniIcon = Instance.new("TextButton")
+    miniIcon.Name = "MiniIconBtn"
+    miniIcon.Size = UDim2.fromOffset(54, 54)
+    miniIcon.Position = UDim2.new(0, 18, 0.2, 0)
+    miniIcon.BackgroundColor3 = PALETTE.TopbarBg
+    miniIcon.Text = ""
+    miniIcon.AutoButtonColor = false
+    miniIcon.Visible = false
+    miniIcon.Parent = screenGui
+    round(miniIcon, 12)
+    stroke(miniIcon, PALETTE.BorderAccent, 1.5, 0.15)
+
+    local miniBadge = Instance.new("Frame")
+    miniBadge.Size = UDim2.fromOffset(38, 38)
+    miniBadge.Position = UDim2.fromScale(0.5, 0.5)
+    miniBadge.AnchorPoint = Vector2.new(0.5, 0.5)
+    miniBadge.BackgroundColor3 = PALETTE.Accent
+    miniBadge.BorderSizePixel = 0
+    miniBadge.Parent = miniIcon
+    round(miniBadge, 9)
+
+    local miniText = Instance.new("TextLabel")
+    miniText.Size = UDim2.fromScale(1, 1)
+    miniText.BackgroundTransparency = 1
+    miniText.Text = "TH"
+    miniText.Font = Enum.Font.GothamBlack
+    miniText.TextSize = 15
+    miniText.TextColor3 = Color3.new(1, 1, 1)
+    miniText.Parent = miniBadge
 
     local main = Instance.new("Frame")
     main.Name = "MainWindow"
@@ -183,48 +239,25 @@ function UI.init(Config, hubTitle)
     local minBtn = makeWinBtn("—", -76, false)
     local closeBtn = makeWinBtn("✕", -40, true)
 
-    local isCollapsed = false
     minBtn.MouseButton1Click:Connect(function()
-        isCollapsed = not isCollapsed
-        tween(main, 0.18, {
-            Size = isCollapsed and UDim2.fromOffset(540, 52) or UDim2.fromOffset(540, 325),
-        })
+        main.Visible = false
+        miniIcon.Visible = true
     end)
 
     closeBtn.MouseButton1Click:Connect(function()
         main.Visible = false
-        quickToggle.Visible = true
+        miniIcon.Visible = true
     end)
 
-    quickToggle.MouseButton1Click:Connect(function()
-        quickToggle.Visible = false
-        main.Visible = true
+    local wasMiniDragged = makeDraggable(miniIcon, miniIcon)
+    miniIcon.MouseButton1Click:Connect(function()
+        if not wasMiniDragged() then
+            miniIcon.Visible = false
+            main.Visible = true
+        end
     end)
 
-    local dragging, dragOrigin, winOrigin = false, nil, nil
-    topbar.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragOrigin = inp.Position
-            winOrigin = main.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(inp)
-        if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
-            local d = inp.Position - dragOrigin
-            main.Position = UDim2.new(
-                winOrigin.X.Scale,
-                winOrigin.X.Offset + d.X,
-                winOrigin.Y.Scale,
-                winOrigin.Y.Offset + d.Y
-            )
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
+    makeDraggable(topbar, main)
 
     local content = Instance.new("Frame")
     content.Name = "Content"
@@ -249,7 +282,6 @@ function UI.init(Config, hubTitle)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = content
 
-    -- แถวที่ 1: สวิตช์เปิด-ปิดเล่นมินิเกมอัตโนมัติ
     local row1 = Instance.new("Frame")
     row1.LayoutOrder = 1
     row1.Size = UDim2.new(1, 0, 0, 54)
@@ -317,7 +349,6 @@ function UI.init(Config, hubTitle)
         tween(knob, 0.14, { Position = on and UDim2.fromOffset(23, 3) or UDim2.fromOffset(3, 3) })
     end)
 
-    -- แถวที่ 2: แถบเลื่อนปรับความเร็วรอบ
     local row2 = Instance.new("Frame")
     row2.LayoutOrder = 2
     row2.Size = UDim2.new(1, 0, 0, 54)
@@ -405,7 +436,6 @@ function UI.init(Config, hubTitle)
         end
     end)
 
-    -- แถวที่ 3: ปุ่มสแกนไฟล์และโครงสร้างเกมลง Console
     local row3 = Instance.new("Frame")
     row3.LayoutOrder = 3
     row3.Size = UDim2.new(1, 0, 0, 52)
@@ -464,7 +494,7 @@ function UI.init(Config, hubTitle)
         end)
     end)
 
-    print("[UI] Mounted with Scan Button")
+    print("[UI] Mounted with Compact Mini Icon")
 end
 
 return UI
