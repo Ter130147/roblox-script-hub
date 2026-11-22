@@ -10,8 +10,15 @@ local sequenceQueue = {}
 local lastHighlightedKey = nil
 local lastActionTime = 0
 local lastAcceptTime = 0
-local lastFishCycleTime = 0
-local netThrown = false
+
+local Cat1Module = nil
+pcall(function()
+    local src = game:HttpGet("https://raw.githubusercontent.com/Ter130147/roblox-script-hub/main/games/cat1_fishing_collect.lua?cb=" .. tostring(os.clock()) .. "_" .. tostring(math.random(10000,99999)), true)
+    local fn = loadstring(src)
+    if fn then
+        Cat1Module = fn()
+    end
+end)
 
 local function scanGameStructure()
     print("=== 1. REMOTES IN REPLICATEDSTORAGE ===")
@@ -41,41 +48,6 @@ local function scanGameStructure()
         end
     end
     print("=== SCAN COMPLETE ===")
-end
-
--- หมวดที่ 1: ตกปลาและเก็บผลผลิต (ไม่แตะร้านค้าหรือปุ่ม Robux)
-local function stepCategoryOneFishingAndCollect(Config)
-    local r = ReplicatedStorage:FindFirstChild("Remotes")
-    if not r then
-        return
-    end
-
-    local spd = tonumber(Config and Config.MiniGameSpeed) or 0.15
-    local cycleDelay = math.clamp(spd * 4, 0.65, 2.50)
-    if tick() - lastFishCycleTime < cycleDelay then
-        return
-    end
-    lastFishCycleTime = tick()
-
-    local throwNet = r:FindFirstChild("ThrowNet")
-    local reelIn = r:FindFirstChild("ReelIn")
-    local collectPadReq = r:FindFirstChild("CollectPadReq")
-
-    pcall(function()
-        if not netThrown and throwNet and throwNet:IsA("RemoteEvent") then
-            throwNet:FireServer()
-            netThrown = true
-        elseif reelIn and reelIn:IsA("RemoteEvent") then
-            reelIn:FireServer()
-            netThrown = false
-        end
-    end)
-
-    pcall(function()
-        if collectPadReq and collectPadReq:IsA("RemoteEvent") then
-            collectPadReq:FireServer()
-        end
-    end)
 end
 
 local function containsDangerText(container)
@@ -393,9 +365,11 @@ function GameModule.init(Config, Utils)
             end
 
             if Config and Config.AutoFishCollect then
-                pcall(stepCategoryOneFishingAndCollect, Config)
-            else
-                netThrown = false
+                if Cat1Module and Cat1Module.step then
+                    pcall(Cat1Module.step, Config)
+                end
+            elseif Cat1Module and Cat1Module.reset then
+                pcall(Cat1Module.reset)
             end
 
             if Config and Config.AutoMiniGame then
@@ -409,7 +383,7 @@ function GameModule.init(Config, Utils)
         end
     end)
 
-    print("[Net a Fish] โหลดหมวดที่ 1 (ตกปลาและเก็บผลผลิต) + ระบบมินิเกมเรียบร้อย")
+    print("[Net a Fish] โหลดไฟล์แยกหมวดที่ 1 (cat1_fishing_collect.lua) และระบบมินิเกมเรียบร้อย")
 end
 
 return GameModule
