@@ -537,6 +537,11 @@ lastHighlightedKey = nil
 return
 end
 
+-- กดปุ่ม PlayButton / เริ่มเล่น ก่อนเสมอสำหรับทุกมินิเกม
+if tryClickPlayInMiniGame(mg) then
+return
+end
+
 local allText = getHeaderTitle(mg)
 
 if tryPlayReelGame(mg, allText) then
@@ -550,8 +555,6 @@ end
 if tryPlayMemoryBaitGame(mg, allText) then
 return
 end
-
-tryClickPlayInMiniGame(mg)
 end
 
 function GameModule.init(Config, Utils)
