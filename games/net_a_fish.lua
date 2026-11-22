@@ -9,7 +9,6 @@ local started = false
 local sequenceQueue = {}
 local lastHighlightedKey = nil
 local lastReplayTime = 0
-local lastAcceptTime = 0
 
 local function getRemotes()
     local r = ReplicatedStorage:FindFirstChild("Remotes")
@@ -19,7 +18,6 @@ local function getRemotes()
     return {
         MiniGame = r:FindFirstChild("MiniGame"),
         MiniGamePing = r:FindFirstChild("MiniGamePing"),
-        PerfectTap = r:FindFirstChild("PerfectTap"),
     }
 end
 
@@ -41,86 +39,14 @@ local function safeInvoke(rem, ...)
     end
 end
 
-local function clickGuiButton(btn)
-    if not btn or not btn.Visible then
-        return false
-    end
-
-    pcall(function()
-        if getconnections then
-            for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
-                conn:Fire()
-            end
-            for _, conn in ipairs(getconnections(btn.Activated)) do
-                conn:Fire()
-            end
-        end
-    end)
-
-    pcall(function()
-        if btn.AbsolutePosition and btn.AbsoluteSize then
-            local cx = btn.AbsolutePosition.X + (btn.AbsoluteSize.X * 0.5)
-            local cy = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y * 0.5) + 36
-            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
-            task.wait(0.02)
-            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
-        end
-    end)
-
-    return true
-end
-
-local function autoAcceptMiniGame(rem)
-    if tick() - lastAcceptTime < 0.6 then
-        return
-    end
-
+local function getMemoryMiniGameContext()
     local pg = LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then
-        return
+        return false, false, {}
     end
 
-    local acceptKeywords = {
-        "accept", "play", "start", "join", "ready", "enter", "confirm", "yes",
-        "ยอมรับ", "เริ่ม", "เล่น", "ตกลง", "เข้าร่วม", "พร้อม"
-    }
-
-    for _, gui in ipairs(pg:GetChildren()) do
-        if gui.Name ~= "TerHubProUI" and gui:IsA("ScreenGui") and gui.Enabled then
-            for _, obj in ipairs(gui:GetDescendants()) do
-                if (obj:IsA("TextButton") or obj:IsA("ImageButton")) and obj.Visible and obj.Active then
-                    local nameLower = string.lower(obj.Name)
-                    local textLower = obj:IsA("TextButton") and string.lower(obj.Text) or ""
-                    local blob = nameLower .. " " .. textLower
-
-                    -- ข้ามปุ่มปิด/กากบาท
-                    if string.find(blob, "close") or string.find(blob, "decline") or string.find(blob, "cancel") or textLower == "x" then
-                        continue
-                    end
-
-                    for _, kw in ipairs(acceptKeywords) do
-                        if string.find(blob, kw) then
-                            lastAcceptTime = tick()
-                            clickGuiButton(obj)
-                            if rem then
-                                safeFire(rem.MiniGamePing, "Accept")
-                                safeInvoke(rem.MiniGame, "Accept")
-                                safeInvoke(rem.MiniGame, "Start")
-                            end
-                            return
-                        end
-                    end
-                end
-            end
-        end
-    end
-end
-
-local function getBaitChoices()
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then
-        return {}
-    end
+    local hasMiniGame = false
+    local yourTurn = false
     local choices = {}
     local orderNames = { "worm", "shrimp", "cricket", "minnow" }
 
@@ -128,9 +54,24 @@ local function getBaitChoices()
         if gui.Name ~= "TerHubProUI" and gui:IsA("ScreenGui") and gui.Enabled then
             for _, obj in ipairs(gui:GetDescendants()) do
                 if obj:IsA("GuiObject") and obj.Visible then
-                    local blob = string.lower(obj.Name .. " " .. (obj:IsA("TextLabel") or obj:IsA("TextButton") and obj.Text or ""))
+                    local txt = ""
+                    if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+                        txt = string.lower(obj.Text)
+                    end
+                    local blob = string.lower(obj.Name) .. " " .. txt
+
+                    if string.find(blob, "ช่วยความจำเหยื่อ") or string.find(blob, "repeat the order") then
+                        hasMiniGame = true
+                    end
+
+                    if string.find(txt, "ถึงตาคุณ") or string.find(txt, "repeat the order") then
+                        hasMiniGame = true
+                        yourTurn = true
+                    end
+
                     for idx, keyWord in ipairs(orderNames) do
                         if string.find(blob, keyWord) then
+                            hasMiniGame = true
                             local btn = obj:IsA("GuiButton") and obj or obj:FindFirstChildWhichIsA("GuiButton", true)
                             if btn and btn.Visible then
                                 choices[idx] = {
@@ -146,27 +87,8 @@ local function getBaitChoices()
             end
         end
     end
-    return choices
-end
 
-local function isYourTurnTextActive()
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then
-        return false
-    end
-    for _, gui in ipairs(pg:GetChildren()) do
-        if gui.Name ~= "TerHubProUI" and gui:IsA("ScreenGui") and gui.Enabled then
-            for _, lbl in ipairs(gui:GetDescendants()) do
-                if lbl:IsA("TextLabel") and lbl.Visible then
-                    local txt = string.lower(lbl.Text)
-                    if string.find(txt, "ถึงตาคุณ") or string.find(txt, "repeat") or string.find(txt, "your turn") then
-                        return true
-                    end
-                end
-            end
-        end
-    end
-    return false
+    return hasMiniGame, yourTurn, choices
 end
 
 local function detectHighlightedBait(choices)
@@ -174,22 +96,17 @@ local function detectHighlightedBait(choices)
         local item = choices[idx]
         if item and item.card then
             local c = item.card
-            local isLit = false
-            if c:IsA("Frame") or c:IsA("TextButton") or c:IsA("ImageButton") then
+            if c:IsA("GuiObject") then
                 local bg = c.BackgroundColor3
                 local brightness = (bg.R + bg.G + bg.B) / 3
-                if brightness > 0.78 or c.BackgroundTransparency < 0.12 then
-                    isLit = true
+                if brightness > 0.82 or c.BackgroundTransparency < 0.08 then
+                    return idx
                 end
             end
             for _, st in ipairs(c:GetDescendants()) do
-                if st:IsA("UIStroke") and st.Enabled and st.Thickness >= 2.5 then
-                    isLit = true
-                    break
+                if st:IsA("UIStroke") and st.Enabled and st.Thickness >= 3 then
+                    return idx
                 end
-            end
-            if isLit then
-                return idx
             end
         end
     end
@@ -203,10 +120,14 @@ local function pressChoice(item, rem)
     local idx = item.index
     local keyMap = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four }
 
-    clickGuiButton(item.button)
-
     pcall(function()
-        if keyMap[idx] then
+        if item.button and item.button.AbsolutePosition and item.button.AbsoluteSize then
+            local cx = item.button.AbsolutePosition.X + (item.button.AbsoluteSize.X * 0.5)
+            local cy = item.button.AbsolutePosition.Y + (item.button.AbsoluteSize.Y * 0.5) + 36
+            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+            task.wait(0.02)
+            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+        elseif keyMap[idx] then
             VirtualInputManager:SendKeyEvent(true, keyMap[idx], false, game)
             task.wait(0.02)
             VirtualInputManager:SendKeyEvent(false, keyMap[idx], false, game)
@@ -220,11 +141,14 @@ local function pressChoice(item, rem)
 end
 
 local function runMemoryBaitStep()
-    local rem = getRemotes()
-    autoAcceptMiniGame(rem)
+    local hasMiniGame, yourTurn, choices = getMemoryMiniGameContext()
+    if not hasMiniGame then
+        sequenceQueue = {}
+        lastHighlightedKey = nil
+        return
+    end
 
-    local choices = getBaitChoices()
-    local yourTurn = isYourTurnTextActive()
+    local rem = getRemotes()
     local litIdx = detectHighlightedBait(choices)
 
     if not yourTurn then
@@ -238,7 +162,7 @@ local function runMemoryBaitStep()
     end
 
     local spd = tonumber(Config and Config.MiniGameSpeed) or 0.15
-    if tick() - lastReplayTime < math.clamp(spd, 0.05, 1.0) then
+    if tick() - lastReplayTime < math.clamp(spd, 0.08, 1.0) then
         return
     end
 
@@ -249,8 +173,6 @@ local function runMemoryBaitStep()
             lastReplayTime = tick()
             pressChoice(targetItem, rem)
         end
-    else
-        lastHighlightedKey = nil
     end
 end
 
@@ -264,7 +186,7 @@ function GameModule.init(Config, Utils)
         while started do
             if Config and Config.AutoMiniGame then
                 pcall(runMemoryBaitStep)
-                task.wait(0.03)
+                task.wait(0.04)
             else
                 sequenceQueue = {}
                 lastHighlightedKey = nil
@@ -273,7 +195,7 @@ function GameModule.init(Config, Utils)
         end
     end)
 
-    print("[Net a Fish] โหลดระบบกดรับมินิเกมอัตโนมัติ + จำลำดับเหยื่อเรียบร้อย")
+    print("[Net a Fish] โหลดโหมดจำเหยื่อแบบไม่กดมั่วเรียบร้อย")
 end
 
 return GameModule
