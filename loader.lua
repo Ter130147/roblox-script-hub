@@ -27,22 +27,22 @@ local function fetchModule(relPath)
     return fn()
 end
 
-local Config = fetchModule("config.lua") or {
+local Config = fetchModule("config.lua?t=" .. tostring(os.time())) or {
     AutoMiniGame = true,
     MiniGameSpeed = 0.15,
     ScanNow = false,
 }
 
-local Utils = fetchModule("core/utils.lua") or {}
-local UI = fetchModule("ui.lua")
+local Utils = fetchModule("core/utils.lua?t=" .. tostring(os.time())) or {}
+local UI = fetchModule("ui.lua?t=" .. tostring(os.time()))
 
 if UI and type(UI.init) == "function" then
     UI.init(Config, "TER HUB")
 end
 
-local gameScript = "games/template_game.lua"
+local gameScript = "games/template_game.lua?t=" .. tostring(os.time())
 if game.PlaceId == 93898234979111 then
-    gameScript = "games/net_a_fish/init.lua"
+    gameScript = "games/net_a_fish/init.lua?t=" .. tostring(os.time())
 end
 
 local GameModule = fetchModule(gameScript)
