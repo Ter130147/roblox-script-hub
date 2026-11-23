@@ -205,7 +205,6 @@ miniIcon.TextSize = 18
 miniIcon.TextColor3 = Color3.new(1, 1, 1)
 miniIcon.AutoButtonColor = false
 miniIcon.ZIndex = 52
-miniHolder.Parent = miniHolder
 miniIcon.Parent = miniHolder
 round(miniIcon, 14)
 local miniStroke = stroke(miniIcon, Color3.fromRGB(255, 78, 102), 2, 0)
