@@ -371,7 +371,43 @@ end
 end)
 draggable(top, wrap)
 
-local side = Instance.new("Frame")
+local innerGridGlow = Instance.new("Frame")
+innerGridGlow.Name = "InnerBgGlow"
+innerGridGlow.Size = UDim2.new(1, -24, 1, -76)
+innerGridGlow.Position = UDim2.fromOffset(12, 64)
+innerGridGlow.BackgroundColor3 = Color3.fromRGB(28, 8, 13)
+innerGridGlow.BackgroundTransparency = 0.72
+innerGridGlow.BorderSizePixel = 0
+innerGridGlow.ZIndex = 2
+innerGridGlow.Parent = main
+round(innerGridGlow, 12)
+local innerGrad = grad3(innerGridGlow, Color3.fromRGB(75, 10, 18), Color3.fromRGB(14, 11, 15), Color3.fromRGB(95, 12, 22))
+innerGrad.Rotation = 25
+
+local bgScanBeam = Instance.new("Frame")
+bgScanBeam.Name = "BgScanBeam"
+bgScanBeam.Size = UDim2.new(1, 0, 0.28, 0)
+bgScanBeam.Position = UDim2.new(0, 0, -0.3, 0)
+bgScanBeam.BackgroundColor3 = Color3.fromRGB(220, 26, 42)
+bgScanBeam.BackgroundTransparency = 0.88
+bgScanBeam.BorderSizePixel = 0
+bgScanBeam.ZIndex = 2
+bgScanBeam.Parent = innerGridGlow
+local beamGrad = Instance.new("UIGradient")
+beamGrad.Rotation = 90
+beamGrad.Transparency = NumberSequence.new({
+NumberSequenceKeypoint.new(0, 1),
+NumberSequenceKeypoint.new(0.5, 0.45),
+NumberSequenceKeypoint.new(1, 1),
+})
+beamGrad.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 6, 12)),
+ColorSequenceKeypoint.new(0.5, Color3.fromRGB(225, 32, 54)),
+ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 6, 12)),
+})
+beamGrad.Parent = bgScanBeam
+
+	local side = Instance.new("Frame")
 side.Size = UDim2.fromOffset(172, 296)
 side.Position = UDim2.fromOffset(12, 64)
 side.BackgroundColor3 = PALETTE.SidebarBg
@@ -856,8 +892,35 @@ return
 end
 rot = (rot + dt * 110) % 360
 mGrad.Rotation = rot
-crimsonTitleGrad.Rotation = (rot * 0.5) % 360
 clk += dt
+
+-- หัวข้อชื่อฮับและชื่อแมพ: สีขาว สลับ สี RGB ไหลต่อเนื่อง
+local rgbShift = (clk * 0.35) % 1
+local cRgb1 = Color3.fromHSV(rgbShift, 0.85, 1)
+local cRgb2 = Color3.fromHSV((rgbShift + 0.18) % 1, 0.85, 1)
+local cRgb3 = Color3.fromHSV((rgbShift + 0.36) % 1, 0.85, 1)
+crimsonTitleGrad.Rotation = (clk * 75) % 360
+crimsonTitleGrad.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.28, cRgb1),
+ColorSequenceKeypoint.new(0.52, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.78, cRgb2),
+ColorSequenceKeypoint.new(1.00, cRgb3),
+})
+
+-- เอฟเฟกต์พื้นหลังด้านในเคลื่อนไหวต่อเนื่อง
+local bgBeamObj = main:FindFirstChild("InnerBgGlow") and main.InnerBgGlow:FindFirstChild("BgScanBeam")
+if bgBeamObj then
+local beamY = ((clk * 0.42) % 1.55) - 0.35
+bgBeamObj.Position = UDim2.new(0, 0, beamY, 0)
+end
+local gridGlowObj = main:FindFirstChild("InnerBgGlow")
+if gridGlowObj then
+local g = gridGlowObj:FindFirstChildOfClass("UIGradient")
+if g then
+g.Rotation = (25 + math.sin(clk * 1.4) * 18) % 360
+end
+end
 
 local sweepX = ((clk * 0.65) % 1.8) - 0.5
 for _, obj in ipairs(main:GetDescendants()) do
