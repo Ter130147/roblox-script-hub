@@ -72,7 +72,7 @@ local function getPedestalTargets(rootPos)
 				local part, collectFolder = findCollectPadPart(d)
 				if part and not seen[part] then
 					local dist = (part.Position - rootPos).Magnitude
-					if dist <= 260 then
+					if dist <= 2500 then
 						seen[part] = true
 						local pedModel = collectFolder and collectFolder.Parent or part.Parent
 						table.insert(targets, {
@@ -104,7 +104,7 @@ local function stepAutoPadTp(cfg)
 		return
 	end
 	local interval = tonumber(cfg.CollectIntervalSec) or 5
-	local cooldown = math.max(1.0, math.min(interval, 15))
+	local cooldown = math.max(0.35, math.min(interval * 0.15, 1.2))
 	if tick() - lastPadTpTime < cooldown then
 		return
 	end
