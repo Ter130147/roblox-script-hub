@@ -501,7 +501,7 @@ end
 return true
 end
 
--- [GAME 3] BAIT MEMORY / ความจำเหยื่อ (จำคิว Bait1-Bait4 แล้วกดตามเมื่อถึงตาคุณ)
+-- [GAME 3] BAIT MEMORY / ความจำเหยื่อ (จำคิว Bait1-Bait4 และกดตามทันทีเมื่อถึงตาคุณ)
 local function runBaitMemoryMinigame(mg, allText)
 local areas = getActiveMiniGameAreas(mg)
 local choices = {}
@@ -531,6 +531,7 @@ end
 local isMemory = (next(choices) ~= nil)
 or string.find(allText, "BAIT MEMORY", 1, true) ~= nil
 or string.find(allText, "ความจำเหยื่อ", 1, true) ~= nil
+or string.find(allText, "หน่วยความจำเหยื่อ", 1, true) ~= nil
 
 if not isMemory then
 lastMemTurnState = false
@@ -584,7 +585,11 @@ break
 elseif d:IsA("UIScale") and d.Scale > 1.03 then
 highlighted = true
 break
-elseif d:IsA("GuiObject") and d.Visible and string.find(string.lower(d.Name), "glow", 1, true) then
+elseif d:IsA("GuiObject") and d.Visible and (
+string.find(string.lower(d.Name), "glow", 1, true)
+or string.find(string.lower(d.Name), "flash", 1, true)
+or string.find(string.lower(d.Name), "highlight", 1, true)
+) then
 highlighted = true
 break
 end
@@ -621,7 +626,7 @@ end
 return true
 end
 
-if tick() - lastActionTime < 0.06 then
+if tick() - lastActionTime < 0.08 then
 return true
 end
 
