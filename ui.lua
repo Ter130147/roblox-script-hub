@@ -142,6 +142,70 @@ return moved
 end
 end
 
+local function create3DTerButton(parentGui)
+local holder = Instance.new("Frame")
+holder.Name = "TerMiniHolder"
+holder.Size = UDim2.fromOffset(64, 66)
+holder.Position = UDim2.new(0, 18, 0.25, 0)
+holder.BackgroundTransparency = 1
+holder.Visible = false
+holder.ZIndex = 200
+holder.Parent = parentGui
+
+local backPlate = Instance.new("Frame")
+backPlate.Name = "Depth3DPlate"
+backPlate.Size = UDim2.fromOffset(52, 52)
+backPlate.Position = UDim2.fromOffset(6, 8)
+backPlate.BackgroundColor3 = Color3.fromRGB(130, 14, 28)
+backPlate.ZIndex = 200
+backPlate.Parent = holder
+round(backPlate, 15)
+stroke(backPlate, Color3.fromRGB(255, 75, 98), 1.5, 0.2)
+
+local btn = Instance.new("TextButton")
+btn.Name = "TerMiniToggle"
+btn.Size = UDim2.fromOffset(52, 52)
+btn.Position = UDim2.fromOffset(3, 3)
+btn.BackgroundColor3 = Color3.fromRGB(12, 11, 15)
+btn.Text = ""
+btn.AutoButtonColor = false
+btn.ClipsDescendants = true
+btn.ZIndex = 202
+btn.Parent = holder
+round(btn, 15)
+local bStroke = stroke(btn, Color3.fromRGB(255, 82, 106), 2, 0)
+grad3(btn, Color3.fromRGB(68, 12, 22), Color3.fromRGB(12, 11, 15), Color3.fromRGB(36, 8, 15)).Rotation = 135
+addSweepEffect(btn, Color3.fromRGB(140, 12, 28), Color3.fromRGB(255, 110, 130), 205)
+
+local shadowLbl = Instance.new("TextLabel")
+shadowLbl.Name = "TerShadow3D"
+shadowLbl.Size = UDim2.fromScale(1, 1)
+shadowLbl.Position = UDim2.fromOffset(2, 2)
+shadowLbl.BackgroundTransparency = 1
+shadowLbl.Text = "Ter"
+shadowLbl.Font = Enum.Font.GothamBlack
+shadowLbl.TextSize = 18
+shadowLbl.TextColor3 = Color3.fromRGB(190, 20, 42)
+shadowLbl.ZIndex = 203
+shadowLbl.Parent = btn
+
+local mainLbl = Instance.new("TextLabel")
+mainLbl.Name = "TerLabel3D"
+mainLbl.Size = UDim2.fromScale(1, 1)
+mainLbl.Position = UDim2.fromOffset(0, 0)
+mainLbl.BackgroundTransparency = 1
+mainLbl.Text = "Ter"
+mainLbl.Font = Enum.Font.GothamBlack
+mainLbl.TextSize = 18
+mainLbl.TextColor3 = Color3.new(1, 1, 1)
+mainLbl.ZIndex = 204
+mainLbl.Parent = btn
+local lGrad = grad3(mainLbl, Color3.new(1, 1, 1), Color3.fromRGB(255, 220, 225), Color3.fromRGB(255, 85, 108))
+lGrad.Rotation = 90
+
+return holder, btn, bStroke
+end
+
 function UI.init(Config, hubTitle)
 Config.AutoFishCollect = Config.AutoFishCollect or false
 Config.AutoCatch = Config.AutoCatch or false
@@ -175,40 +239,12 @@ sg.ResetOnSpawn = false
 sg.DisplayOrder = 999
 sg.Parent = pg
 
--- ปุ่มโลโก้ "Ter" แบบ 3D ลอยตัว (โชว์เด่นชัด)
-local miniHolder = Instance.new("Frame")
-miniHolder.Name = "TerMiniHolder"
-miniHolder.Size = UDim2.fromOffset(62, 64)
-miniHolder.Position = UDim2.new(0, 18, 0.25, 0)
-miniHolder.BackgroundTransparency = 1
-miniHolder.Visible = true
-miniHolder.ZIndex = 100
-miniHolder.Parent = sg
+-- ปุ่มโลโก้ "Ter" แบบ 3D ลอยตัว (ฟีลไอคอนฮับซ้อนมิติ)
+local miniHolder, miniIcon, miniStroke = create3DTerButton(sg)
+grad3(miniIcon, Color3.fromRGB(22, 14, 18), Color3.fromRGB(10, 10, 13), Color3.fromRGB(58, 10, 20)).Rotation = 135
+addSweepEffect(miniIcon, Color3.fromRGB(140, 12, 28), Color3.fromRGB(255, 95, 118), 54)
 
-local miniBackPlate = Instance.new("Frame")
-miniBackPlate.Size = UDim2.fromOffset(52, 52)
-miniBackPlate.Position = UDim2.fromOffset(5, 7)
-miniBackPlate.BackgroundColor3 = Color3.fromRGB(16, 14, 18)
-miniBackPlate.ZIndex = 100
-miniBackPlate.Parent = miniHolder
-round(miniBackPlate, 15)
-stroke(miniBackPlate, Color3.fromRGB(225, 35, 60), 2, 0.1)
-
-local miniIcon = Instance.new("TextButton")
-miniIcon.Name = "TerMiniToggle"
-miniIcon.Size = UDim2.fromOffset(50, 50)
-miniIcon.Position = UDim2.fromOffset(3, 2)
-miniIcon.BackgroundColor3 = Color3.fromRGB(10, 10, 13)
-miniIcon.Text = ""
-miniIcon.AutoButtonColor = false
-miniIcon.ClipsDescendants = true
-miniIcon.ZIndex = 102
-miniIcon.Parent = miniHolder
-round(miniIcon, 14)
-local miniStroke = stroke(miniIcon, Color3.fromRGB(255, 70, 95), 2, 0)
-grad3(miniIcon, Color3.fromRGB(24, 14, 18), Color3.fromRGB(10, 10, 13), Color3.fromRGB(65, 10, 22)).Rotation = 135
-addSweepEffect(miniIcon, Color3.fromRGB(140, 12, 28), Color3.fromRGB(255, 95, 118), 104)
-
+-- ชั้นเงาแดง 3D เยื้องด้านล่างขวา
 local miniRedShadow = Instance.new("TextLabel")
 miniRedShadow.Size = UDim2.fromScale(1, 1)
 miniRedShadow.Position = UDim2.fromOffset(2, 2)
@@ -216,10 +252,11 @@ miniRedShadow.BackgroundTransparency = 1
 miniRedShadow.Text = "Ter"
 miniRedShadow.Font = Enum.Font.GothamBlack
 miniRedShadow.TextSize = 18
-miniRedShadow.TextColor3 = Color3.fromRGB(190, 20, 40)
-miniRedShadow.ZIndex = 102
+miniRedShadow.TextColor3 = Color3.fromRGB(185, 22, 42)
+miniRedShadow.ZIndex = 52
 miniRedShadow.Parent = miniIcon
 
+-- ตัวอักษรหลัก "Ter" สีขาวตัดมิติ
 local miniMainLabel = Instance.new("TextLabel")
 miniMainLabel.Size = UDim2.fromScale(1, 1)
 miniMainLabel.Position = UDim2.fromOffset(0, 0)
@@ -228,7 +265,7 @@ miniMainLabel.Text = "Ter"
 miniMainLabel.Font = Enum.Font.GothamBlack
 miniMainLabel.TextSize = 18
 miniMainLabel.TextColor3 = Color3.new(1, 1, 1)
-miniMainLabel.ZIndex = 103
+miniMainLabel.ZIndex = 53
 miniMainLabel.Parent = miniIcon
 local miniLabelGrad = grad3(miniMainLabel, Color3.new(1, 1, 1), Color3.fromRGB(255, 215, 220), Color3.fromRGB(255, 80, 102))
 miniLabelGrad.Rotation = 90
