@@ -73,21 +73,89 @@ end
 return tostring(a.pedName) < tostring(b.pedName)
 end
 
+local function isOwnedBase(baseModel)
+if not (baseModel and LocalPlayer) then
+return false
+end
+local myName = string.lower(LocalPlayer.Name)
+local myDisp = string.lower(LocalPlayer.DisplayName or "")
+local myId = tostring(LocalPlayer.UserId)
+
+for _, attrVal in pairs(baseModel:GetAttributes()) do
+local s = string.lower(tostring(attrVal))
+if s == myName or (myDisp ~= "" and s == myDisp) or s == myId then
+return true
+end
+end
+
+for _, d in ipairs(baseModel:GetDescendants()) do
+if d:IsA("StringValue") or d:IsA("IntValue") or d:IsA("NumberValue") then
+local v = string.lower(tostring(d.Value))
+if v == myName or (myDisp ~= "" and v == myDisp) or v == myId then
+return true
+end
+elseif d:IsA("ObjectValue") and d.Value == LocalPlayer then
+return true
+elseif d:IsA("TextLabel") and d.Visible then
+local t = string.lower(tostring(d.Text or ""))
+if string.find(t, myName, 1, true) or (myDisp ~= "" and string.find(t, myDisp, 1, true)) then
+return true
+end
+end
+end
+
+return false
+end
+
+local function findMyBaseContainer(rootPos)
+local mapObj = workspace:FindFirstChild("Map")
+local basesObj = mapObj and mapObj:FindFirstChild("Bases")
+if not basesObj then
+return nil
+end
+
+for _, base in ipairs(basesObj:GetChildren()) do
+if isOwnedBase(base) then
+return base
+end
+end
+
+local nearestBase = nil
+local nearestDist = math.huge
+for _, base in ipairs(basesObj:GetChildren()) do
+local peds = base:FindFirstChild("Pedestals")
+if peds then
+local ok, pivot = pcall(function()
+return peds:GetPivot()
+end)
+if ok and pivot then
+local d = (pivot.Position - rootPos).Magnitude
+if d < nearestDist then
+nearestDist = d
+nearestBase = base
+end
+end
+end
+end
+
+return nearestBase
+end
+
 local function getPedestalTargets(rootPos)
 local targets = {}
 local seen = {}
-local mapObj = workspace:FindFirstChild("Map")
-local basesObj = mapObj and mapObj:FindFirstChild("Bases")
-local searchRoot = basesObj or workspace
+local myBase = findMyBaseContainer(rootPos)
+if not myBase then
+return targets
+end
 
-for _, d in ipairs(searchRoot:GetDescendants()) do
+local pedsFolder = myBase:FindFirstChild("Pedestals") or myBase
+for _, d in ipairs(pedsFolder:GetDescendants()) do
 if d:IsA("TextLabel") and d.Visible then
 local txt = tostring(d.Text or "")
 if string.find(string.lower(txt), "collect", 1, true) or string.find(txt, "$", 1, true) then
 local part, collectFolder = findCollectPadPart(d)
 if part and not seen[part] then
-local dist = (part.Position - rootPos).Magnitude
-if dist <= 2500 then
 seen[part] = true
 local pedModel = collectFolder and collectFolder.Parent or part.Parent
 table.insert(targets, {
@@ -97,7 +165,6 @@ pedName = pedModel and pedModel.Name or part.Name,
 pos = part.Position,
 halfH = part.Size.Y * 0.5,
 })
-end
 end
 end
 end
