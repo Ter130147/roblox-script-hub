@@ -16,9 +16,19 @@ local lastChaosLane = nil
 local sequenceQueue = {}
 local lastHighlightedKey = nil
 local lastMemTurnState = false
-local lastPadTpTime = 0
+
+local lastPadSweepStartTime = 0
+local lastPadStepTime = 0
+local sweepActive = false
+local sweepTargets = {}
+local sweepIndex = 0
 local lastCollectMoneyTime = 0
-local padCycleIndex = 0
+
+local lastCatchStepTime = 0
+local lastReelFullTime = 0
+local lastShootMegalodonTime = 0
+local lastShootBloopTime = 0
+local lastRebirthTime = 0
 
 local Cat1Module = nil
 pcall(function()
@@ -58,166 +68,160 @@ local function findCollectPadPart(fromObj)
 	return nil, nil
 end
 
-local lastPadSweepStartTime = 0
-local lastPadStepTime = 0
-local sweepActive = false
-local sweepTargets = {}
-local sweepIndex = 0
-
 local function naturalPedestalSort(a, b)
-local aNum = tonumber(tostring(a.pedName):match("(%d+)$")) or 999999
-local bNum = tonumber(tostring(b.pedName):match("(%d+)$")) or 999999
-if aNum ~= bNum then
-return aNum < bNum
-end
-return tostring(a.pedName) < tostring(b.pedName)
+	local aNum = tonumber(tostring(a.pedName):match("(%d+)$")) or 999999
+	local bNum = tonumber(tostring(b.pedName):match("(%d+)$")) or 999999
+	if aNum ~= bNum then
+		return aNum < bNum
+	end
+	return tostring(a.pedName) < tostring(b.pedName)
 end
 
 local function isOwnedBase(baseModel)
-if not (baseModel and LocalPlayer) then
-return false
-end
-local myName = string.lower(LocalPlayer.Name)
-local myDisp = string.lower(LocalPlayer.DisplayName or "")
-local myId = tostring(LocalPlayer.UserId)
+	if not (baseModel and LocalPlayer) then
+		return false
+	end
+	local myName = string.lower(LocalPlayer.Name)
+	local myDisp = string.lower(LocalPlayer.DisplayName or "")
+	local myId = tostring(LocalPlayer.UserId)
 
-for _, attrVal in pairs(baseModel:GetAttributes()) do
-local s = string.lower(tostring(attrVal))
-if s == myName or (myDisp ~= "" and s == myDisp) or s == myId then
-return true
-end
-end
+	for _, attrVal in pairs(baseModel:GetAttributes()) do
+		local s = string.lower(tostring(attrVal))
+		if s == myName or (myDisp ~= "" and s == myDisp) or s == myId then
+			return true
+		end
+	end
 
-for _, d in ipairs(baseModel:GetDescendants()) do
-if d:IsA("StringValue") or d:IsA("IntValue") or d:IsA("NumberValue") then
-local v = string.lower(tostring(d.Value))
-if v == myName or (myDisp ~= "" and v == myDisp) or v == myId then
-return true
-end
-elseif d:IsA("ObjectValue") and d.Value == LocalPlayer then
-return true
-elseif d:IsA("TextLabel") and d.Visible then
-local t = string.lower(tostring(d.Text or ""))
-if string.find(t, myName, 1, true) or (myDisp ~= "" and string.find(t, myDisp, 1, true)) then
-return true
-end
-end
-end
+	for _, d in ipairs(baseModel:GetDescendants()) do
+		if d:IsA("StringValue") or d:IsA("IntValue") or d:IsA("NumberValue") then
+			local v = string.lower(tostring(d.Value))
+			if v == myName or (myDisp ~= "" and v == myDisp) or v == myId then
+				return true
+			end
+		elseif d:IsA("ObjectValue") and d.Value == LocalPlayer then
+			return true
+		elseif d:IsA("TextLabel") and d.Visible then
+			local t = string.lower(tostring(d.Text or ""))
+			if string.find(t, myName, 1, true) or (myDisp ~= "" and string.find(t, myDisp, 1, true)) then
+				return true
+			end
+		end
+	end
 
-return false
+	return false
 end
 
 local function findMyBaseContainer(rootPos)
-local mapObj = workspace:FindFirstChild("Map")
-local basesObj = mapObj and mapObj:FindFirstChild("Bases")
-if not basesObj then
-return nil
-end
+	local mapObj = workspace:FindFirstChild("Map")
+	local basesObj = mapObj and mapObj:FindFirstChild("Bases")
+	if not basesObj then
+		return nil
+	end
 
-for _, base in ipairs(basesObj:GetChildren()) do
-if isOwnedBase(base) then
-return base
-end
-end
+	for _, base in ipairs(basesObj:GetChildren()) do
+		if isOwnedBase(base) then
+			return base
+		end
+	end
 
-local nearestBase = nil
-local nearestDist = math.huge
-for _, base in ipairs(basesObj:GetChildren()) do
-local peds = base:FindFirstChild("Pedestals")
-if peds then
-local ok, pivot = pcall(function()
-return peds:GetPivot()
-end)
-if ok and pivot then
-local d = (pivot.Position - rootPos).Magnitude
-if d < nearestDist then
-nearestDist = d
-nearestBase = base
-end
-end
-end
-end
+	local nearestBase = nil
+	local nearestDist = math.huge
+	for _, base in ipairs(basesObj:GetChildren()) do
+		local peds = base:FindFirstChild("Pedestals")
+		if peds then
+			local ok, pivot = pcall(function()
+				return peds:GetPivot()
+			end)
+			if ok and pivot then
+				local d = (pivot.Position - rootPos).Magnitude
+				if d < nearestDist then
+					nearestDist = d
+					nearestBase = base
+				end
+			end
+		end
+	end
 
-return nearestBase
+	return nearestBase
 end
 
 local function getPedestalTargets(rootPos)
-local targets = {}
-local seen = {}
-local myBase = findMyBaseContainer(rootPos)
-if not myBase then
-return targets
-end
+	local targets = {}
+	local seen = {}
+	local myBase = findMyBaseContainer(rootPos)
+	if not myBase then
+		return targets
+	end
 
-local pedsFolder = myBase:FindFirstChild("Pedestals") or myBase
-for _, d in ipairs(pedsFolder:GetDescendants()) do
-if d:IsA("TextLabel") and d.Visible then
-local txt = tostring(d.Text or "")
-if string.find(string.lower(txt), "collect", 1, true) or string.find(txt, "$", 1, true) then
-local part, collectFolder = findCollectPadPart(d)
-if part and not seen[part] then
-seen[part] = true
-local pedModel = collectFolder and collectFolder.Parent or part.Parent
-table.insert(targets, {
-part = part,
-collectFolder = collectFolder,
-pedName = pedModel and pedModel.Name or part.Name,
-pos = part.Position,
-halfH = part.Size.Y * 0.5,
-})
-end
-end
-end
-end
+	local pedsFolder = myBase:FindFirstChild("Pedestals") or myBase
+	for _, d in ipairs(pedsFolder:GetDescendants()) do
+		if d:IsA("TextLabel") and d.Visible then
+			local txt = tostring(d.Text or "")
+			if string.find(string.lower(txt), "collect", 1, true) or string.find(txt, "$", 1, true) then
+				local part, collectFolder = findCollectPadPart(d)
+				if part and not seen[part] then
+					seen[part] = true
+					local pedModel = collectFolder and collectFolder.Parent or part.Parent
+					table.insert(targets, {
+						part = part,
+						collectFolder = collectFolder,
+						pedName = pedModel and pedModel.Name or part.Name,
+						pos = part.Position,
+						halfH = part.Size.Y * 0.5,
+					})
+				end
+			end
+		end
+	end
 
-table.sort(targets, naturalPedestalSort)
-return targets
+	table.sort(targets, naturalPedestalSort)
+	return targets
 end
 
 local function stepAutoPadTp(cfg)
-if not (cfg and cfg.AutoPadTp) then
-sweepActive = false
-sweepIndex = 0
-return
-end
+	if not (cfg and cfg.AutoPadTp) then
+		sweepActive = false
+		sweepIndex = 0
+		return
+	end
 
-local interval = tonumber(cfg.CollectIntervalSec) or 30
-interval = math.max(1, interval)
-local root = getRootPart()
-if not root then
-return
-end
+	local interval = tonumber(cfg.CollectIntervalSec) or 30
+	interval = math.max(1, interval)
+	local root = getRootPart()
+	if not root then
+		return
+	end
 
-if not sweepActive then
-if (tick() - lastPadSweepStartTime) >= interval then
-local list = getPedestalTargets(root.Position)
-if #list > 0 then
-sweepTargets = list
-sweepIndex = 1
-sweepActive = true
-lastPadSweepStartTime = tick()
-lastPadStepTime = 0
-end
-end
-end
+	if not sweepActive then
+		if (tick() - lastPadSweepStartTime) >= interval then
+			local list = getPedestalTargets(root.Position)
+			if #list > 0 then
+				sweepTargets = list
+				sweepIndex = 1
+				sweepActive = true
+				lastPadSweepStartTime = tick()
+				lastPadStepTime = 0
+			end
+		end
+	end
 
-if sweepActive then
-if (tick() - lastPadStepTime) >= 0.18 then
-local item = sweepTargets[sweepIndex]
-if item and item.part and item.part.Parent then
-lastPadStepTime = tick()
-local targetPos = item.pos + Vector3.new(0, (item.halfH or 1) + 3.2, 0)
-pcall(function()
-root.CFrame = CFrame.new(targetPos, targetPos + root.CFrame.LookVector)
-end)
-end
-sweepIndex += 1
-if sweepIndex > #sweepTargets then
-sweepActive = false
-sweepIndex = 0
-end
-end
-end
+	if sweepActive then
+		if (tick() - lastPadStepTime) >= 0.18 then
+			local item = sweepTargets[sweepIndex]
+			if item and item.part and item.part.Parent then
+				lastPadStepTime = tick()
+				local targetPos = item.pos + Vector3.new(0, (item.halfH or 1) + 3.2, 0)
+				pcall(function()
+					root.CFrame = CFrame.new(targetPos, targetPos + root.CFrame.LookVector)
+				end)
+			end
+			sweepIndex += 1
+			if sweepIndex > #sweepTargets then
+				sweepActive = false
+				sweepIndex = 0
+			end
+		end
+	end
 end
 
 local function stepAutoCollectMoney(cfg)
@@ -239,7 +243,7 @@ local function stepAutoCollectMoney(cfg)
 	local targets = getPedestalTargets(root.Position)
 
 	for _, item in ipairs(targets) do
-		if item.dist <= 65 then
+		if (item.pos - root.Position).Magnitude <= 65 then
 			if collectRemote and collectRemote:IsA("RemoteEvent") then
 				pcall(function() collectRemote:FireServer(item.collectFolder or item.part) end)
 				pcall(function() collectRemote:FireServer(item.pedName) end)
@@ -257,26 +261,6 @@ local function stepAutoCollectMoney(cfg)
 	if collectRemote and collectRemote:IsA("RemoteEvent") then
 		pcall(function() collectRemote:FireServer() end)
 	end
-end
-
-local function hasFishingToggleActive(cfg)
-	if not cfg then
-		return false
-	end
-	return (cfg.AutoFishCollect == true) or (cfg.AutoCatch == true) or (cfg.AutoReelFull == true)
-end
-
-local function scanGameStructure()
-	print("==========================================================")
-	print("[DeepScan] REMOTES & BINDABLES")
-	for _, service in ipairs({ ReplicatedStorage, workspace }) do
-		for _, obj in ipairs(service:GetDescendants()) do
-			if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") or obj:IsA("BindableEvent") or obj:IsA("BindableFunction") then
-				print(string.format("  - [%s] %s", obj.ClassName, obj:GetFullName()))
-			end
-		end
-	end
-	print("==========================================================")
 end
 
 local function containsDangerText(container)
@@ -339,6 +323,233 @@ local function tapKey(keyCode)
 		VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
 		VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
 	end)
+end
+
+local function stepAutoCatch(cfg)
+	if not (cfg and cfg.AutoCatch) then
+		return
+	end
+	if tick() - lastCatchStepTime < 0.35 then
+		return
+	end
+	lastCatchStepTime = tick()
+
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	if remotes then
+		local catchReady = remotes:FindFirstChild("CatchReady")
+		local resolveCatch = remotes:FindFirstChild("ResolveCatch")
+		if catchReady and catchReady:IsA("RemoteEvent") then
+			pcall(function() catchReady:FireServer() end)
+		end
+		if resolveCatch and resolveCatch:IsA("RemoteEvent") then
+			pcall(function() resolveCatch:FireServer() end)
+		end
+	end
+
+	if Cat1Module and Cat1Module.step then
+		pcall(Cat1Module.step, {
+			AutoCatch = true,
+			AutoFishCollect = true,
+			AutoReelFull = false,
+		})
+	end
+end
+
+local function isNetFullInGui()
+	local pg = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
+	if not pg then
+		return false
+	end
+	for _, obj in ipairs(pg:GetDescendants()) do
+		if obj.Name ~= "TerHubProUI" and (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Visible then
+			local txt = tostring(obj.Text or "")
+			local low = string.lower(txt)
+			if string.find(txt, "เต็ม", 1, true) or string.find(low, "full", 1, true) then
+				return true
+			end
+			local curNum, maxNum = txt:match("(%d+)%s*/%s*(%d+)")
+			if curNum and maxNum and tonumber(curNum) >= tonumber(maxNum) and tonumber(maxNum) > 0 then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function stepAutoReelFull(cfg)
+	if not (cfg and cfg.AutoReelFull) then
+		return
+	end
+	if tick() - lastReelFullTime < 0.6 then
+		return
+	end
+	if not isNetFullInGui() then
+		return
+	end
+	lastReelFullTime = tick()
+
+	local pg = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
+	if pg then
+		for _, obj in ipairs(pg:GetDescendants()) do
+			if obj.Name ~= "TerHubProUI" and obj:IsA("GuiButton") and obj.Visible and not containsDangerText(obj) then
+				local nLow = string.lower(obj.Name)
+				local txt = obj:IsA("TextButton") and tostring(obj.Text or "") or ""
+				local low = string.lower(txt)
+				if string.find(txt, "อวน", 1, true) or string.find(txt, "ดึง", 1, true) or string.find(low, "reel", 1, true) or string.find(nLow, "reel", 1, true) then
+					fireGuiButton(obj)
+					break
+				end
+			end
+		end
+	end
+
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	if remotes then
+		local haul = remotes:FindFirstChild("BoatHaul")
+		if haul and haul:IsA("RemoteEvent") then
+			pcall(function() haul:FireServer() end)
+		end
+	end
+end
+
+local function findBossTargetPos(keyword)
+	local root = getRootPart()
+	if not root then
+		return nil
+	end
+	local keyLow = string.lower(keyword)
+	local bestPos = nil
+	local bestDist = math.huge
+
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		local nLow = string.lower(obj.Name)
+		if string.find(nLow, keyLow, 1, true) then
+			local pos = nil
+			if obj:IsA("BasePart") then
+				pos = obj.Position
+			elseif obj:IsA("Model") then
+				local ok, pivot = pcall(function() return obj:GetPivot() end)
+				if ok and pivot then
+					pos = pivot.Position
+				end
+			end
+			if pos then
+				local d = (pos - root.Position).Magnitude
+				if d < bestDist then
+					bestDist = d
+					bestPos = pos
+				end
+			end
+		end
+	end
+
+	return bestPos
+end
+
+local function aimAndFireAtTarget(targetPos)
+	local root = getRootPart()
+	if not (root and targetPos) then
+		return
+	end
+	pcall(function()
+		local lookAt = Vector3.new(targetPos.X, root.Position.Y, targetPos.Z)
+		root.CFrame = CFrame.lookAt(root.Position, lookAt)
+	end)
+	local cam = workspace.CurrentCamera
+	if cam then
+		pcall(function()
+			cam.CFrame = CFrame.lookAt(cam.CFrame.Position, targetPos)
+		end)
+		local vpPos, onScreen = cam:WorldToViewportPoint(targetPos)
+		if onScreen and vpPos then
+			pcall(function()
+				VirtualInputManager:SendMouseMoveEvent(vpPos.X, vpPos.Y, game)
+				VirtualInputManager:SendMouseButtonEvent(vpPos.X, vpPos.Y, 0, true, game, 0)
+				task.wait(0.03)
+				VirtualInputManager:SendMouseButtonEvent(vpPos.X, vpPos.Y, 0, false, game, 0)
+			end)
+		end
+	end
+	tapKey(Enum.KeyCode.F)
+end
+
+local function stepAutoShootMegalodon(cfg)
+	if not (cfg and cfg.AutoShootMegalodon) then
+		return
+	end
+	if tick() - lastShootMegalodonTime < 0.22 then
+		return
+	end
+	local targetPos = findBossTargetPos("megalodon")
+	if targetPos then
+		lastShootMegalodonTime = tick()
+		aimAndFireAtTarget(targetPos)
+	end
+end
+
+local function stepAutoShootBloop(cfg)
+	if not (cfg and cfg.AutoShootBloop) then
+		return
+	end
+	if tick() - lastShootBloopTime < 0.22 then
+		return
+	end
+	local targetPos = findBossTargetPos("bloop")
+	if targetPos then
+		lastShootBloopTime = tick()
+		aimAndFireAtTarget(targetPos)
+	end
+end
+
+local function stepAutoRebirth(cfg)
+	if not (cfg and cfg.AutoRebirth) then
+		return
+	end
+	if tick() - lastRebirthTime < 3.0 then
+		return
+	end
+	lastRebirthTime = tick()
+
+	local pg = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
+	if pg then
+		for _, obj in ipairs(pg:GetDescendants()) do
+			if obj.Name ~= "TerHubProUI" and obj:IsA("GuiButton") and obj.Visible and not containsDangerText(obj) then
+				local nLow = string.lower(obj.Name)
+				local txt = obj:IsA("TextButton") and tostring(obj.Text or "") or ""
+				local low = string.lower(txt)
+				if string.find(txt, "รีเบิร์ธ", 1, true) or string.find(low, "rebirth", 1, true) or string.find(nLow, "rebirth", 1, true) then
+					fireGuiButton(obj)
+					break
+				end
+			end
+		end
+	end
+
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	if remotes then
+		for _, r in ipairs(remotes:GetDescendants()) do
+			if string.find(string.lower(r.Name), "rebirth", 1, true) then
+				if r:IsA("RemoteEvent") then
+					pcall(function() r:FireServer() end)
+				elseif r:IsA("RemoteFunction") then
+					pcall(function() r:InvokeServer() end)
+				end
+			end
+		end
+	end
+end
+
+local function scanGameStructure()
+	print("==========================================================")
+	print("[DeepScan] REMOTES & BINDABLES")
+	for _, service in ipairs({ ReplicatedStorage, workspace }) do
+		for _, obj in ipairs(service:GetDescendants()) do
+			if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") or obj:IsA("BindableEvent") or obj:IsA("BindableFunction") then
+				print(string.format("  - [%s] %s", obj.ClassName, obj:GetFullName()))
+			end
+		end
+	end
+	print("==========================================================")
 end
 
 local function getMiniGameGui()
@@ -663,18 +874,18 @@ function GameModule.init(Config, Utils)
 	task.spawn(function()
 		while started do
 			if Config then
-				if hasFishingToggleActive(Config) then
-					if Cat1Module and Cat1Module.step then pcall(Cat1Module.step, Config) end
-				elseif Cat1Module and Cat1Module.reset then
-					pcall(Cat1Module.reset)
-				end
+				if Config.AutoCatch then pcall(stepAutoCatch, Config) end
+				if Config.AutoReelFull then pcall(stepAutoReelFull, Config) end
 				if Config.AutoPadTp then pcall(stepAutoPadTp, Config) end
 				if Config.AutoCollectMoney then pcall(stepAutoCollectMoney, Config) end
+				if Config.AutoShootMegalodon then pcall(stepAutoShootMegalodon, Config) end
+				if Config.AutoShootBloop then pcall(stepAutoShootBloop, Config) end
+				if Config.AutoRebirth then pcall(stepAutoRebirth, Config) end
 			end
-			task.wait(0.15)
+			task.wait(0.12)
 		end
 	end)
-	print("[Net a Fish] Ready (Pedestal TP + CollectPadReq + 3 Minigames)")
+	print("[Net a Fish] Ready - All Granular Controls Wired")
 end
 
 return GameModule
