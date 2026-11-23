@@ -138,7 +138,7 @@ function UI.init(Config, hubTitle)
 local miniShadow = Instance.new("Frame")
 miniShadow.Size = UDim2.fromOffset(44, 44)
 miniShadow.Position = UDim2.fromOffset(2, 6)
-miniShadow.BackgroundColor3 = Color3.fromRGB(95, 14, 24)
+miniShadow.BackgroundColor3 = Color3.fromRGB(18, 12, 14)
 miniShadow.ZIndex = math.max(1, (miniIcon.ZIndex or 2) - 1)
 miniShadow.Parent = miniHolder
 round(miniShadow, 11)
@@ -162,7 +162,7 @@ stroke(miniShadow, Color3.fromRGB(165, 25, 42), 1.2, 0.15)
 local mainShadow = Instance.new("Frame")
 mainShadow.Size = UDim2.fromOffset(620, 368)
 mainShadow.Position = UDim2.fromOffset(6, 10)
-mainShadow.BackgroundColor3 = Color3.fromRGB(68, 10, 18)
+mainShadow.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 mainShadow.ZIndex = math.max(1, (main.ZIndex or 2) - 1)
 mainShadow.Parent = wrap
 round(mainShadow, 14)
@@ -171,7 +171,7 @@ stroke(mainShadow, Color3.fromRGB(150, 22, 38), 1.4, 0.2)
 
 	local mStroke = stroke(main, PALETTE.Red, 1.6, 0)
 	local mGrad = grad3(mStroke, PALETTE.RedDark, PALETTE.RedBright, PALETTE.CrimsonDeep)
-	grad3(main, Color3.fromRGB(48, 12, 20), Color3.fromRGB(14, 12, 16), Color3.fromRGB(38, 10, 16)).Rotation = 32
+	grad3(main, Color3.fromRGB(16, 14, 16), Color3.fromRGB(14, 12, 16), Color3.fromRGB(28, 10, 14)).Rotation = 32
 
 	local top = Instance.new("Frame")
 	top.Size = UDim2.new(1, 0, 0, 54)
