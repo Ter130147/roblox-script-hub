@@ -899,7 +899,22 @@ local rgbShift = (clk * 0.35) % 1
 local cRgb1 = Color3.fromHSV(rgbShift, 0.85, 1)
 local cRgb2 = Color3.fromHSV((rgbShift + 0.18) % 1, 0.85, 1)
 local cRgb3 = Color3.fromHSV((rgbShift + 0.36) % 1, 0.85, 1)
-crimsonTitleGrad.Rotation = (clk * 75) % 360
+-- หัวข้อชื่อฮับและชื่อแมพ: สีขาว สลับ สี RGB แบบเอฟเฟกต์
+local hBase = (clk * 0.45) % 1
+local c1 = Color3.fromHSV(hBase, 0.95, 1)
+local c2 = Color3.fromHSV((hBase + 0.14) % 1, 0.95, 1)
+local c3 = Color3.fromHSV((hBase + 0.28) % 1, 0.95, 1)
+local c4 = Color3.fromHSV((hBase + 0.42) % 1, 0.95, 1)
+crimsonTitleGrad.Rotation = 0
+crimsonTitleGrad.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.18, c1),
+ColorSequenceKeypoint.new(0.36, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.54, c2),
+ColorSequenceKeypoint.new(0.72, c3),
+ColorSequenceKeypoint.new(0.88, c4),
+ColorSequenceKeypoint.new(1.00, Color3.new(1, 1, 1)),
+})
 crimsonTitleGrad.Color = ColorSequence.new({
 ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
 ColorSequenceKeypoint.new(0.28, cRgb1),
@@ -927,7 +942,22 @@ local rgbShift = (clk * 0.35) % 1
 local cRgb1 = Color3.fromHSV(rgbShift, 0.85, 1)
 local cRgb2 = Color3.fromHSV((rgbShift + 0.18) % 1, 0.85, 1)
 local cRgb3 = Color3.fromHSV((rgbShift + 0.36) % 1, 0.85, 1)
-crimsonTitleGrad.Rotation = (clk * 75) % 360
+-- หัวข้อชื่อฮับและชื่อแมพ: สีขาว สลับ สี RGB แบบเอฟเฟกต์
+local hBase = (clk * 0.45) % 1
+local c1 = Color3.fromHSV(hBase, 0.95, 1)
+local c2 = Color3.fromHSV((hBase + 0.14) % 1, 0.95, 1)
+local c3 = Color3.fromHSV((hBase + 0.28) % 1, 0.95, 1)
+local c4 = Color3.fromHSV((hBase + 0.42) % 1, 0.95, 1)
+crimsonTitleGrad.Rotation = 0
+crimsonTitleGrad.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.18, c1),
+ColorSequenceKeypoint.new(0.36, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.54, c2),
+ColorSequenceKeypoint.new(0.72, c3),
+ColorSequenceKeypoint.new(0.88, c4),
+ColorSequenceKeypoint.new(1.00, Color3.new(1, 1, 1)),
+})
 crimsonTitleGrad.Color = ColorSequence.new({
 ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
 ColorSequenceKeypoint.new(0.28, cRgb1),
