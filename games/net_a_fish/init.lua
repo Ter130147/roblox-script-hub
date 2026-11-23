@@ -58,70 +58,99 @@ local function findCollectPadPart(fromObj)
 	return nil, nil
 end
 
+local lastPadSweepStartTime = 0
+local lastPadStepTime = 0
+local sweepActive = false
+local sweepTargets = {}
+local sweepIndex = 0
+
+local function naturalPedestalSort(a, b)
+local aNum = tonumber(tostring(a.pedName):match("(%d+)$")) or 999999
+local bNum = tonumber(tostring(b.pedName):match("(%d+)$")) or 999999
+if aNum ~= bNum then
+return aNum < bNum
+end
+return tostring(a.pedName) < tostring(b.pedName)
+end
+
 local function getPedestalTargets(rootPos)
-	local targets = {}
-	local seen = {}
-	local mapObj = workspace:FindFirstChild("Map")
-	local basesObj = mapObj and mapObj:FindFirstChild("Bases")
-	local searchRoot = basesObj or workspace
+local targets = {}
+local seen = {}
+local mapObj = workspace:FindFirstChild("Map")
+local basesObj = mapObj and mapObj:FindFirstChild("Bases")
+local searchRoot = basesObj or workspace
 
-	for _, d in ipairs(searchRoot:GetDescendants()) do
-		if d:IsA("TextLabel") and d.Visible then
-			local txt = tostring(d.Text or "")
-			if string.find(string.lower(txt), "collect", 1, true) or string.find(txt, "$", 1, true) then
-				local part, collectFolder = findCollectPadPart(d)
-				if part and not seen[part] then
-					local dist = (part.Position - rootPos).Magnitude
-					if dist <= 2500 then
-						seen[part] = true
-						local pedModel = collectFolder and collectFolder.Parent or part.Parent
-						table.insert(targets, {
-							part = part,
-							collectFolder = collectFolder,
-							pedName = pedModel and pedModel.Name or part.Name,
-							pos = part.Position,
-							halfH = part.Size.Y * 0.5,
-							dist = dist,
-						})
-					end
-				end
-			end
-		end
-	end
+for _, d in ipairs(searchRoot:GetDescendants()) do
+if d:IsA("TextLabel") and d.Visible then
+local txt = tostring(d.Text or "")
+if string.find(string.lower(txt), "collect", 1, true) or string.find(txt, "$", 1, true) then
+local part, collectFolder = findCollectPadPart(d)
+if part and not seen[part] then
+local dist = (part.Position - rootPos).Magnitude
+if dist <= 2500 then
+seen[part] = true
+local pedModel = collectFolder and collectFolder.Parent or part.Parent
+table.insert(targets, {
+part = part,
+collectFolder = collectFolder,
+pedName = pedModel and pedModel.Name or part.Name,
+pos = part.Position,
+halfH = part.Size.Y * 0.5,
+})
+end
+end
+end
+end
+end
 
-	table.sort(targets, function(a, b)
-		if math.abs(a.dist - b.dist) > 25 then
-			return a.dist < b.dist
-		end
-		return tostring(a.pedName) < tostring(b.pedName)
-	end)
-
-	return targets
+table.sort(targets, naturalPedestalSort)
+return targets
 end
 
 local function stepAutoPadTp(cfg)
-	if not (cfg and cfg.AutoPadTp) then
-		return
-	end
-	local interval = tonumber(cfg.CollectIntervalSec) or 5
-	local cooldown = math.max(0.35, math.min(interval * 0.15, 1.2))
-	if tick() - lastPadTpTime < cooldown then
-		return
-	end
-	local root = getRootPart()
-	if not root then
-		return
-	end
-	local targets = getPedestalTargets(root.Position)
-	if #targets > 0 then
-		padCycleIndex = (padCycleIndex % #targets) + 1
-		local chosen = targets[padCycleIndex]
-		lastPadTpTime = tick()
-		local targetPos = chosen.pos + Vector3.new(0, (chosen.halfH or 1) + 3.2, 0)
-		pcall(function()
-			root.CFrame = CFrame.new(targetPos, targetPos + root.CFrame.LookVector)
-		end)
-	end
+if not (cfg and cfg.AutoPadTp) then
+sweepActive = false
+sweepIndex = 0
+return
+end
+
+local interval = tonumber(cfg.CollectIntervalSec) or 30
+interval = math.max(1, interval)
+local root = getRootPart()
+if not root then
+return
+end
+
+if not sweepActive then
+if (tick() - lastPadSweepStartTime) >= interval then
+local list = getPedestalTargets(root.Position)
+if #list > 0 then
+sweepTargets = list
+sweepIndex = 1
+sweepActive = true
+lastPadSweepStartTime = tick()
+lastPadStepTime = 0
+end
+end
+end
+
+if sweepActive then
+if (tick() - lastPadStepTime) >= 0.18 then
+local item = sweepTargets[sweepIndex]
+if item and item.part and item.part.Parent then
+lastPadStepTime = tick()
+local targetPos = item.pos + Vector3.new(0, (item.halfH or 1) + 3.2, 0)
+pcall(function()
+root.CFrame = CFrame.new(targetPos, targetPos + root.CFrame.LookVector)
+end)
+end
+sweepIndex += 1
+if sweepIndex > #sweepTargets then
+sweepActive = false
+sweepIndex = 0
+end
+end
+end
 end
 
 local function stepAutoCollectMoney(cfg)
