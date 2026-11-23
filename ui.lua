@@ -184,6 +184,7 @@ miniHolder.BackgroundTransparency = 1
 miniHolder.Visible = false
 miniHolder.ZIndex = 50
 
+	miniHolder.Parent = sg
 local miniBack = Instance.new("Frame")
 miniBack.Name = "Ter3DShadowBox"
 miniBack.Size = UDim2.fromOffset(50, 50)
