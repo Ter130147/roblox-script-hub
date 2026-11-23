@@ -663,6 +663,71 @@ end
 return true
 end
 
+local lastPadTpTime = 0
+
+local function getRootPart()
+    local char = LocalPlayer and LocalPlayer.Character
+    if not char then
+        return nil
+    end
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
+end
+
+local function findNearestPadPart(rootPos)
+    local bestPart = nil
+    local bestDist = math.huge
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local nLow = string.lower(obj.Name)
+            local pLow = obj.Parent and string.lower(obj.Parent.Name) or ""
+            local isPad = string.find(nLow, "pad", 1, true)
+                or string.find(nLow, "platform", 1, true)
+                or string.find(nLow, "stand", 1, true)
+                or string.find(nLow, "button", 1, true)
+                or string.find(nLow, "plate", 1, true)
+                or string.find(pLow, "pad", 1, true)
+                or string.find(pLow, "platform", 1, true)
+                or obj:FindFirstChildWhichIsA("TouchTransmitter") ~= nil
+
+            if isPad and obj.Size.Magnitude < 250 then
+                local dist = (obj.Position - rootPos).Magnitude
+                if dist < bestDist then
+                    bestDist = dist
+                    bestPart = obj
+                end
+            end
+        end
+    end
+
+    return bestPart
+end
+
+local function stepAutoPadTp(cfg)
+    if not (cfg and cfg.AutoPadTp) then
+        return
+    end
+    local interval = tonumber(cfg.CollectIntervalSec) or 5
+    local cooldown = math.max(1.5, math.min(interval, 15))
+    if tick() - lastPadTpTime < cooldown then
+        return
+    end
+
+    local root = getRootPart()
+    if not root then
+        return
+    end
+
+    local padPart = findNearestPadPart(root.Position)
+    if padPart then
+        lastPadTpTime = tick()
+        local targetPos = padPart.Position + Vector3.new(0, (padPart.Size.Y * 0.5) + 3.2, 0)
+        pcall(function()
+            root.CFrame = CFrame.new(targetPos, targetPos + root.CFrame.LookVector)
+        end)
+    end
+end
+
 local function stepMiniGame()
 local mg = getMiniGameGui()
 if not mg then
@@ -736,6 +801,7 @@ while started do
 if anyGranularFeatureActive(Config) then
 if Cat1Module and Cat1Module.step then
 pcall(Cat1Module.step, Config)
+\t\t\t\t\tpcall(stepAutoPadTp, Config)
 end
 elseif Cat1Module and Cat1Module.reset then
 pcall(Cat1Module.reset)
