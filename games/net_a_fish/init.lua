@@ -673,62 +673,47 @@ local function getRootPart()
     return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
 end
 
-local function findNearestPadPart(rootPos)
-    local bestPos = nil
-    local bestHalfHeight = 2
-    local bestDist = math.huge
+local padCycleIndex = 0
+
+local function getCollectPadTargets(rootPos)
+    local targets = {}
+    local seen = {}
 
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local nLow = string.lower(obj.Name)
-            local pLow = obj.Parent and string.lower(obj.Parent.Name) or ""
-            local isPad = string.find(nLow, "pad", 1, true)
-                or string.find(nLow, "platform", 1, true)
-                or string.find(nLow, "stand", 1, true)
-                or string.find(nLow, "button", 1, true)
-                or string.find(nLow, "plate", 1, true)
-                or string.find(nLow, "spot", 1, true)
-                or string.find(nLow, "zone", 1, true)
-                or string.find(nLow, "plot", 1, true)
-                or string.find(nLow, "claim", 1, true)
-                or string.find(pLow, "pad", 1, true)
-                or string.find(pLow, "platform", 1, true)
-                or string.find(pLow, "plot", 1, true)
-                or obj:FindFirstChildWhichIsA("TouchTransmitter") ~= nil
-
-            if isPad then
-                local dist = (obj.Position - rootPos).Magnitude
-                if dist > 2 and dist < bestDist then
-                    bestDist = dist
-                    bestPos = obj.Position
-                    bestHalfHeight = obj.Size.Y * 0.5
+        if obj:IsA("TextLabel") and obj.Visible then
+            local txt = string.lower(obj.Text or "")
+            if string.find(txt, "เก็บ", 1, true) or string.find(txt, "collect", 1, true) then
+                local gui = obj:FindFirstAncestorWhichIsA("BillboardGui") or obj:FindFirstAncestorWhichIsA("SurfaceGui")
+                local part = gui and gui.Adornee
+                if not part and gui and gui.Parent and gui.Parent:IsA("BasePart") then
+                    part = gui.Parent
                 end
-            end
-        elseif obj:IsA("Model") then
-            local nLow = string.lower(obj.Name)
-            local isPadModel = string.find(nLow, "pad", 1, true)
-                or string.find(nLow, "platform", 1, true)
-                or string.find(nLow, "stand", 1, true)
-                or string.find(nLow, "plot", 1, true)
-                or string.find(nLow, "spot", 1, true)
-
-            if isPadModel then
-                local ok, pivot = pcall(function()
-                    return obj:GetPivot()
-                end)
-                if ok and pivot then
-                    local dist = (pivot.Position - rootPos).Magnitude
-                    if dist > 2 and dist < bestDist then
-                        bestDist = dist
-                        bestPos = pivot.Position
-                        bestHalfHeight = 2
+                if not part then
+                    part = obj:FindFirstAncestorWhichIsA("BasePart")
+                end
+                if part and part:IsA("BasePart") and not seen[part] then
+                    local dist = (part.Position - rootPos).Magnitude
+                    if dist <= 180 then
+                        seen[part] = true
+                        table.insert(targets, {
+                            pos = part.Position,
+                            halfH = part.Size.Y * 0.5,
+                            dist = dist,
+                        })
                     end
                 end
             end
         end
     end
 
-    return bestPos, bestHalfHeight
+    table.sort(targets, function(a, b)
+        if math.abs(a.pos.X - b.pos.X) > 2 then
+            return a.pos.X < b.pos.X
+        end
+        return a.pos.Z < b.pos.Z
+    end)
+
+    return targets
 end
 
 local function stepAutoPadTp(cfg)
@@ -736,7 +721,7 @@ local function stepAutoPadTp(cfg)
         return
     end
     local interval = tonumber(cfg.CollectIntervalSec) or 5
-    local cooldown = math.max(1.5, math.min(interval, 15))
+    local cooldown = math.max(1.2, math.min(interval, 15))
     if tick() - lastPadTpTime < cooldown then
         return
     end
@@ -746,10 +731,12 @@ local function stepAutoPadTp(cfg)
         return
     end
 
-    local padPos, halfH = findNearestPadPart(root.Position)
-    if padPos then
+    local targets = getCollectPadTargets(root.Position)
+    if #targets > 0 then
+        padCycleIndex = (padCycleIndex % #targets) + 1
+        local chosen = targets[padCycleIndex]
         lastPadTpTime = tick()
-        local targetPos = padPos + Vector3.new(0, (halfH or 2) + 3.2, 0)
+        local targetPos = chosen.pos + Vector3.new(0, (chosen.halfH or 1) + 3.0, 0)
         pcall(function()
             root.CFrame = CFrame.new(targetPos, targetPos + root.CFrame.LookVector)
         end)
