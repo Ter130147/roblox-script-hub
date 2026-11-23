@@ -89,6 +89,12 @@ function UI.init(Config, hubTitle)
     Config.AutoRebirth = Config.AutoRebirth or false
     Config.AutoMiniGame = Config.AutoMiniGame or false
     Config.MiniGameInstant = true
+Config.AutoEquipBestFish = Config.AutoEquipBestFish or false
+Config.AutoFuseAll = Config.AutoFuseAll or false
+Config.SellIntervalSec = Config.SellIntervalSec or 30
+Config.AutoSellFish = Config.AutoSellFish or false
+Config.AutoBuyPotions = Config.AutoBuyPotions or false
+Config.AutoUsePotions = Config.AutoUsePotions or false
 
     local titleText = hubTitle or "TER HUB"
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")

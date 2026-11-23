@@ -856,6 +856,171 @@ local function stepMiniGame()
 	tryClickStartButton(mg)
 end
 
+local lastEquipBestTime = 0
+local lastFuseAllTime = 0
+local lastSellFishTime = 0
+local lastBuyPotionTime = 0
+local lastUsePotionTime = 0
+
+local function clickGuiByKeywords(keywords)
+local pg = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
+if not pg then
+return false
+end
+for _, obj in ipairs(pg:GetDescendants()) do
+if obj.Name ~= "TerHubProUI" and obj:IsA("GuiButton") and obj.Visible and not containsDangerText(obj) then
+local nLow = string.lower(obj.Name)
+local txt = obj:IsA("TextButton") and tostring(obj.Text or "") or ""
+if txt == "" then
+for _, ch in ipairs(obj:GetDescendants()) do
+if ch:IsA("TextLabel") and ch.Visible and (ch.Text or "") ~= "" then
+txt = ch.Text
+break
+end
+end
+end
+local low = string.lower(txt)
+for _, kw in ipairs(keywords) do
+local kLow = string.lower(kw)
+if string.find(txt, kw, 1, true) or string.find(low, kLow, 1, true) or string.find(nLow, kLow, 1, true) then
+fireGuiButton(obj)
+return true
+end
+end
+end
+end
+return false
+end
+
+local function stepAutoEquipBestFish(cfg)
+if not (cfg and cfg.AutoEquipBestFish) then
+return
+end
+if tick() - lastEquipBestTime < 2.0 then
+return
+end
+lastEquipBestTime = tick()
+
+if clickGuiByKeywords({ "Equip Best", "Best Fish", "ใส่ปลาที่ดีที่สุด", "ดีที่สุด" }) then
+return
+end
+
+local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+if remotes then
+for _, r in ipairs(remotes:GetDescendants()) do
+local rLow = string.lower(r.Name)
+if string.find(rLow, "equipbest", 1, true) or (string.find(rLow, "equip", 1, true) and string.find(rLow, "best", 1, true)) then
+if r:IsA("RemoteEvent") then
+pcall(function() r:FireServer() end)
+elseif r:IsA("RemoteFunction") then
+pcall(function() r:InvokeServer() end)
+end
+end
+end
+end
+end
+
+local function stepAutoFuseAll(cfg)
+if not (cfg and cfg.AutoFuseAll) then
+return
+end
+if tick() - lastFuseAllTime < 2.5 then
+return
+end
+lastFuseAllTime = tick()
+
+if clickGuiByKeywords({ "Fuse All", "ฟิวส์ทั้งหมด", "Fuse" }) then
+return
+end
+
+local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+if remotes then
+for _, r in ipairs(remotes:GetDescendants()) do
+local rLow = string.lower(r.Name)
+if string.find(rLow, "fuse", 1, true) then
+if r:IsA("RemoteEvent") then
+pcall(function() r:FireServer() end)
+elseif r:IsA("RemoteFunction") then
+pcall(function() r:InvokeServer() end)
+end
+end
+end
+end
+end
+
+local function stepAutoSellFish(cfg)
+if not (cfg and cfg.AutoSellFish) then
+return
+end
+local interval = tonumber(cfg.SellIntervalSec) or 30
+interval = math.max(2, interval)
+if (tick() - lastSellFishTime) < interval then
+return
+end
+lastSellFishTime = tick()
+
+local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+local sellRemote = remotes and remotes:FindFirstChild("SellFish")
+if sellRemote then
+if sellRemote:IsA("RemoteEvent") then
+pcall(function() sellRemote:FireServer() end)
+elseif sellRemote:IsA("RemoteFunction") then
+pcall(function() sellRemote:InvokeServer() end)
+end
+return
+end
+
+clickGuiByKeywords({ "Sell All", "ขายทั้งหมด", "ขายปลา", "Sell" })
+end
+
+local function stepAutoBuyPotions(cfg)
+if not (cfg and cfg.AutoBuyPotions) then
+return
+end
+if tick() - lastBuyPotionTime < 3.0 then
+return
+end
+lastBuyPotionTime = tick()
+
+local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+local potRemote = remotes and remotes:FindFirstChild("Potions")
+if potRemote then
+if potRemote:IsA("RemoteFunction") then
+pcall(function() potRemote:InvokeServer("BuyAll") end)
+pcall(function() potRemote:InvokeServer("Buy") end)
+elseif potRemote:IsA("RemoteEvent") then
+pcall(function() potRemote:FireServer("BuyAll") end)
+pcall(function() potRemote:FireServer("Buy") end)
+end
+end
+
+clickGuiByKeywords({ "Buy Potion", "ซื้อยา" })
+end
+
+local function stepAutoUsePotions(cfg)
+if not (cfg and cfg.AutoUsePotions) then
+return
+end
+if tick() - lastUsePotionTime < 3.0 then
+return
+end
+lastUsePotionTime = tick()
+
+local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+local potRemote = remotes and remotes:FindFirstChild("Potions")
+if potRemote then
+if potRemote:IsA("RemoteFunction") then
+pcall(function() potRemote:InvokeServer("UseAll") end)
+pcall(function() potRemote:InvokeServer("Use") end)
+elseif potRemote:IsA("RemoteEvent") then
+pcall(function() potRemote:FireServer("UseAll") end)
+pcall(function() potRemote:FireServer("Use") end)
+end
+end
+
+clickGuiByKeywords({ "Use Potion", "ใช้ยา" })
+end
+
 function GameModule.init(Config, Utils)
 	if started then return end
 	started = true
@@ -881,6 +1046,11 @@ function GameModule.init(Config, Utils)
 				if Config.AutoShootMegalodon then pcall(stepAutoShootMegalodon, Config) end
 				if Config.AutoShootBloop then pcall(stepAutoShootBloop, Config) end
 				if Config.AutoRebirth then pcall(stepAutoRebirth, Config) end
+if Config.AutoEquipBestFish then pcall(stepAutoEquipBestFish, Config) end
+if Config.AutoFuseAll then pcall(stepAutoFuseAll, Config) end
+if Config.AutoSellFish then pcall(stepAutoSellFish, Config) end
+if Config.AutoBuyPotions then pcall(stepAutoBuyPotions, Config) end
+if Config.AutoUsePotions then pcall(stepAutoUsePotions, Config) end
 			end
 			task.wait(0.12)
 		end
