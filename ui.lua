@@ -48,6 +48,10 @@ end
 local function grad3(p, c1, c2, c3)
 local g = Instance.new("UIGradient")
 g.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0, c1),
+ColorSequenceKeypoint.new(0.5, c2),
+ColorSequenceKeypoint.new(1, c3),
+})
 g.Parent = p
 return g
 end
