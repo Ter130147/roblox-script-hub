@@ -90,17 +90,13 @@ local basePos = btn.Position
 btn.MouseEnter:Connect(function()
 tween(btn, 0.12, { BackgroundColor3 = hoverBg })
 tween(st, 0.12, { Color = hoverStroke, Thickness = (opts.strokeTh or 1.2) + 0.5, Transparency = 0.05 })
-end)
 btn.MouseLeave:Connect(function()
 tween(btn, 0.14, { BackgroundColor3 = normalBg, Position = basePos })
 tween(st, 0.14, { Color = normalStroke, Thickness = opts.strokeTh or 1.2, Transparency = opts.strokeTr or 0.35 })
-end)
 btn.MouseButton1Down:Connect(function()
 tween(btn, 0.07, { BackgroundColor3 = pressBg, Position = basePos + UDim2.fromOffset(0, pressOffset) })
-end)
 btn.MouseButton1Up:Connect(function()
 tween(btn, 0.1, { BackgroundColor3 = hoverBg, Position = basePos })
-end)
 return st
 end
 
@@ -113,7 +109,6 @@ moved = false
 orig = inp.Position
 sp = f.Position
 end
-end)
 UserInputService.InputChanged:Connect(function(inp)
 if drag and inp.UserInputType == Enum.UserInputType.MouseMovement then
 local d = inp.Position - orig
@@ -122,12 +117,10 @@ moved = true
 end
 f.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y)
 end
-end)
 UserInputService.InputEnded:Connect(function(inp)
 if inp.UserInputType == Enum.UserInputType.MouseButton1 then
 drag = false
 end
-end)
 return function()
 return moved
 end
@@ -403,17 +396,14 @@ style3DButton(clsB, { bg = PALETTE.RowBase, hoverBg = Color3.fromRGB(110, 16, 28
 minB.MouseButton1Click:Connect(function()
 wrap.Visible = false
 miniHolder.Visible = true
-end)
 clsB.MouseButton1Click:Connect(function()
 sg:Destroy()
-end)
 local wasMini = draggable(miniIcon, miniHolder)
 miniIcon.MouseButton1Click:Connect(function()
 if not wasMini() then
 miniHolder.Visible = false
 wrap.Visible = true
 end
-end)
 draggable(top, wrap)
 
 local innerGridGlow = Instance.new("Frame")
@@ -505,7 +495,6 @@ l.SortOrder = Enum.SortOrder.LayoutOrder
 l.Parent = sc
 l:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 sc.CanvasSize = UDim2.new(0, 0, 0, l.AbsoluteContentSize.Y + 24)
-end)
 pages[id] = sc
 return sc
 end
@@ -553,16 +542,13 @@ if pages[id] and not pages[id].Visible then
 tween(b, 0.12, { BackgroundColor3 = Color3.fromRGB(36, 16, 22), TextColor3 = Color3.new(1, 1, 1) })
 tween(st, 0.12, { Color = PALETTE.RedBright, Transparency = 0.25 })
 end
-end)
 b.MouseLeave:Connect(function()
 if pages[id] and not pages[id].Visible then
 tween(b, 0.14, { BackgroundColor3 = PALETTE.RowBase, TextColor3 = PALETTE.TextSecondary })
 tween(st, 0.14, { Color = PALETTE.Red, Transparency = 0.65 })
 end
-end)
 b.MouseButton1Click:Connect(function()
 openPage(id)
-end)
 end
 
 local function addHdr(sc, ord, txt)
@@ -649,11 +635,9 @@ round(kb, 9)
 row.MouseEnter:Connect(function()
 tween(row, 0.12, { BackgroundColor3 = Color3.fromRGB(34, 18, 24) })
 tween(rStroke, 0.12, { Color = PALETTE.RedBright, Transparency = 0.35 })
-end)
 row.MouseLeave:Connect(function()
 tween(row, 0.14, { BackgroundColor3 = PALETTE.RowBase })
 tween(rStroke, 0.14, { Color = PALETTE.Red, Transparency = 0.72 })
-end)
 
 sw.MouseButton1Click:Connect(function()
 local nv = not getFn()
@@ -662,7 +646,6 @@ tag.Text = nv and "เปิด" or "ปิด"
 tag.TextColor3 = nv and PALETTE.Success or PALETTE.TextMuted
 tween(sw, 0.14, { BackgroundColor3 = nv and PALETTE.Red or PALETTE.OffTrack })
 tween(kb, 0.14, { Position = nv and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3) })
-end)
 end
 
 local function addSld(sc, ord, tStr, mn, mx, suf, getFn, setFn)
@@ -746,22 +729,18 @@ if inp.UserInputType == Enum.UserInputType.MouseButton1 then
 sld = true
 upd(inp)
 end
-end)
 th.InputBegan:Connect(function(inp)
 if inp.UserInputType == Enum.UserInputType.MouseButton1 then
 sld = true
 end
-end)
 UserInputService.InputChanged:Connect(function(inp)
 if sld and inp.UserInputType == Enum.UserInputType.MouseMovement then
 upd(inp)
 end
-end)
 UserInputService.InputEnded:Connect(function(inp)
 if inp.UserInputType == Enum.UserInputType.MouseButton1 then
 sld = false
 end
-end)
 end
 
 local function addCycle(sc, ord, tStr, sStr, options, getFn, setFn)
@@ -824,7 +803,6 @@ end
 end
 setFn(options[idx])
 btn.Text = options[idx]
-end)
 end
 
 addTab(1, "fish", "ตกปลา / ฟาร์ม")
@@ -914,8 +892,6 @@ task.delay(0.8, function()
 if sBtn and sBtn.Parent then
 sBtn.Text = "สแกนเกม"
 end
-end)
-end)
 
 openPage("fish")
 
@@ -969,7 +945,6 @@ local pulse = math.sin(clk * 4.2) * 1.5
 miniIcon.Position = UDim2.fromOffset(2, 2 + pulse * 0.5)
 miniStroke.Transparency = 0.1 + (0.15 * (0.5 + 0.5 * math.sin(clk * 4.2)))
 end
-end)
 
 print("[UI] Mounted 3D Crimson Dynamic UI")
 end
