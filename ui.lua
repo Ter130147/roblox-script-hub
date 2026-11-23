@@ -964,7 +964,7 @@ item.frame.Position = UDim2.fromScale(item.bx, item.by + math.sin(clk * 2.2 + it
 end
 end
 
-	\tif miniHolder.Visible then
+	if miniHolder.Visible then
 local pulse = math.sin(clk * 4.2) * 1.5
 miniIcon.Position = UDim2.fromOffset(2, 2 + pulse * 0.5)
 miniStroke.Transparency = 0.1 + (0.15 * (0.5 + 0.5 * math.sin(clk * 4.2)))
