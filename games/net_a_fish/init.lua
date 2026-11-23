@@ -209,15 +209,18 @@ end
 return false
 end
 
--- [1] REEL! / ม้วนที่สมบูรณ์แบบ ตอบสนองทันทีเมื่อเข็มเข้าโซนเขียว
+-- [1] REEL! / ม้วนที่สมบูรณ์แบบ เล็งเฉพาะโซนสีทอง (PERFECT) พร้อมชดเชยความเร็วเข็ม
+local lastNeedleX = nil
+
 local function tryPlayReelGame(mg, allText)
 local areas = getActiveMiniGameAreas(mg)
 local isReelMode = string.find(allText, "REEL", 1, true) ~= nil
 or string.find(allText, "ม้วนที่สมบูรณ์แบบ", 1, true) ~= nil
-or string.find(allText, "โซนสีเขียว", 1, true) ~= nil
+or string.find(allText, "GOLD IS PERFECT", 1, true) ~= nil
 
 local reelBtn = nil
 local greenZone = nil
+local goldZone = nil
 local needle = nil
 
 for _, area in ipairs(areas) do
@@ -231,44 +234,46 @@ string.find(nLower, "reel", 1, true)
 or string.find(nLower, "tap", 1, true)
 or string.find(nLower, "btn", 1, true)
 or string.find(nLower, "action", 1, true)
-or string.find(nLower, "stop", 1, true)
 ) then
 if not containsDangerText(obj) then
 reelBtn = obj
 end
-elseif (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (
-string.find(txtUpper, "REEL", 1, true)
-or string.find(txtUpper, "ม้วน", 1, true)
-or string.find(txtUpper, "ดึง", 1, true)
-or string.find(txtUpper, "หยุด", 1, true)
-) then
+elseif (obj:IsA("TextLabel") or obj:IsA("TextButton")) and string.find(txtUpper, "REEL", 1, true) then
 local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
 if btn and not containsDangerText(btn) then
 reelBtn = btn
 end
 end
 
-if string.find(nLower, "needle", 1, true)
+-- เข็มสีขาวแนวตั้ง (กว้างแคบ สูงกว่าความกว้าง)
+if obj:IsA("Frame") or obj:IsA("ImageLabel") then
+local c = obj.BackgroundColor3
+local sz = obj.AbsoluteSize
+local isWhiteNeedle = (c.R > 0.85 and c.G > 0.85 and c.B > 0.85 and obj.BackgroundTransparency < 0.3 and sz.X >= 3 and sz.X <= 22 and sz.Y >= 24)
+local isNamedNeedle = (
+string.find(nLower, "needle", 1, true)
 or string.find(nLower, "pointer", 1, true)
 or string.find(nLower, "marker", 1, true)
 or string.find(nLower, "cursor", 1, true)
 or string.find(nLower, "indicator", 1, true)
-or string.find(nLower, "bar", 1, true)
-then
-if obj.AbsoluteSize.X <= 36 and obj.AbsoluteSize.Y >= 10 then
+) and (sz.X <= 28 and sz.Y >= 16)
+
+if isWhiteNeedle or isNamedNeedle then
 needle = obj
 end
-end
 
-if obj:IsA("Frame") or obj:IsA("ImageLabel") then
-local c = obj.BackgroundColor3
-if (c.G > 0.52 and c.R < 0.48)
-or string.find(nLower, "green", 1, true)
-or string.find(nLower, "zone", 1, true)
-or string.find(nLower, "target", 1, true)
-or string.find(nLower, "sweet", 1, true)
-then
-if obj.AbsoluteSize.X >= 10 and obj.AbsoluteSize.X <= 420 then
+-- แถบสีทอง (PERFECT) อยู่ด้านในโซนเขียว
+if sz.X >= 4 and sz.X <= 180 and sz.Y >= 14 and obj.BackgroundTransparency < 0.4 then
+local isGoldColor = (c.R > 0.72 and c.G > 0.55 and c.B < 0.35)
+local isGoldName = string.find(nLower, "gold", 1, true) ~= nil
+or string.find(nLower, "perfect", 1, true) ~= nil
+or string.find(nLower, "sweet", 1, true) ~= nil
+or string.find(nLower, "center", 1, true) ~= nil
+
+if isGoldColor or isGoldName then
+goldZone = obj
+elseif (c.G > 0.52 and c.R < 0.48) or string.find(nLower, "green", 1, true) or string.find(nLower, "zone", 1, true) then
+if sz.X <= 360 then
 greenZone = obj
 end
 end
@@ -276,29 +281,62 @@ end
 end
 end
 end
+end
 
-if not isReelMode and not (reelBtn and greenZone) then
+-- ค้นหาปุ่ม REEL! สีเขียวด้านล่าง Body ด้วย (เผื่ออยู่นอก Area)
+if not reelBtn then
+for _, obj in ipairs(mg:GetDescendants()) do
+if obj:IsA("GuiButton") and obj.Visible and not containsDangerText(obj) then
+local nLower = string.lower(obj.Name)
+if string.find(nLower, "reel", 1, true) then
+reelBtn = obj
+break
+end
+for _, ch in ipairs(obj:GetDescendants()) do
+if ch:IsA("TextLabel") and string.find(string.upper(ch.Text or ""), "REEL", 1, true) then
+reelBtn = obj
+break
+end
+end
+if reelBtn then break end
+end
+end
+end
+
+if not isReelMode and not (needle and (goldZone or greenZone)) then
+lastNeedleX = nil
 return false
 end
 
-if tick() - lastActionTime < 0.045 then
-return true
+if needle then
+local nCenter = needle.AbsolutePosition.X + (needle.AbsoluteSize.X * 0.5)
+local velX = lastNeedleX and (nCenter - lastNeedleX) or 0
+lastNeedleX = nCenter
+
+-- คาดการณ์ตำแหน่งเข็มล่วงหน้า ~0.6 เฟรม เพื่อชดเชยจังหวะส่งคำสั่งคลิก
+local predictedCenter = nCenter + (velX * 0.6)
+
+local targetMin, targetMax
+if goldZone then
+targetMin = goldZone.AbsolutePosition.X + 1
+targetMax = goldZone.AbsolutePosition.X + goldZone.AbsoluteSize.X - 1
+elseif greenZone then
+-- ถ้าหาแถบสีทองไม่เจอ ให้บีบเป้าเหลือเฉพาะ 28% ตรงกลางของแถบเขียว
+local gLeft = greenZone.AbsolutePosition.X
+local gWidth = greenZone.AbsoluteSize.X
+targetMin = gLeft + (gWidth * 0.36)
+targetMax = gLeft + (gWidth * 0.64)
 end
 
-if needle and greenZone then
-local nCenter = needle.AbsolutePosition.X + (needle.AbsoluteSize.X * 0.5)
-local zMin = greenZone.AbsolutePosition.X - 3
-local zMax = greenZone.AbsolutePosition.X + greenZone.AbsoluteSize.X + 3
-if nCenter >= zMin and nCenter <= zMax then
+if targetMin and targetMax and (tick() - lastActionTime >= 0.16) then
+if (nCenter >= targetMin and nCenter <= targetMax) or (predictedCenter >= targetMin and predictedCenter <= targetMax) then
 lastActionTime = tick()
 if reelBtn then
 instantClickMiniGame(reelBtn)
 end
 instantPressKey(Enum.KeyCode.Space)
 end
-elseif reelBtn then
-lastActionTime = tick()
-instantClickMiniGame(reelBtn)
+end
 end
 
 return true
