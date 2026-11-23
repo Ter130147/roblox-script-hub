@@ -922,6 +922,34 @@ g.Rotation = (25 + math.sin(clk * 1.4) * 18) % 360
 end
 end
 
+-- หัวข้อชื่อฮับและชื่อแมพ: สีขาว สลับ สี RGB ไหลต่อเนื่อง
+local rgbShift = (clk * 0.35) % 1
+local cRgb1 = Color3.fromHSV(rgbShift, 0.85, 1)
+local cRgb2 = Color3.fromHSV((rgbShift + 0.18) % 1, 0.85, 1)
+local cRgb3 = Color3.fromHSV((rgbShift + 0.36) % 1, 0.85, 1)
+crimsonTitleGrad.Rotation = (clk * 75) % 360
+crimsonTitleGrad.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.28, cRgb1),
+ColorSequenceKeypoint.new(0.52, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.78, cRgb2),
+ColorSequenceKeypoint.new(1.00, cRgb3),
+})
+
+-- เอฟเฟกต์พื้นหลังด้านในเคลื่อนไหวต่อเนื่อง
+local bgBeamObj = main:FindFirstChild("InnerBgGlow") and main.InnerBgGlow:FindFirstChild("BgScanBeam")
+if bgBeamObj then
+local beamY = ((clk * 0.42) % 1.55) - 0.35
+bgBeamObj.Position = UDim2.new(0, 0, beamY, 0)
+end
+local gridGlowObj = main:FindFirstChild("InnerBgGlow")
+if gridGlowObj then
+local g = gridGlowObj:FindFirstChildOfClass("UIGradient")
+if g then
+g.Rotation = (25 + math.sin(clk * 1.4) * 18) % 360
+end
+end
+
 local sweepX = ((clk * 0.65) % 1.8) - 0.5
 for _, obj in ipairs(main:GetDescendants()) do
 if obj:IsA("Frame") and obj.Name == "Sweep3D" then
