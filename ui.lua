@@ -73,6 +73,7 @@ sg.Transparency = NumberSequence.new({
 NumberSequenceKeypoint.new(0, 1),
 NumberSequenceKeypoint.new(0.5, 0.35),
 NumberSequenceKeypoint.new(1, 1),
+})
 sg.Color = ColorSequence.new(Color3.fromRGB(220, 30, 55), Color3.new(1, 1, 1))
 sg.Parent = sweep
 return sweep
@@ -254,6 +255,7 @@ NumberSequenceKeypoint.new(0.35, 0.72),
 NumberSequenceKeypoint.new(0.50, 0.15),
 NumberSequenceKeypoint.new(0.65, 0.72),
 NumberSequenceKeypoint.new(1.00, 1),
+})
 sbGrad.Color = ColorSequence.new(Color3.fromRGB(220, 30, 55), Color3.new(1, 1, 1))
 sbGrad.Parent = sparkleBeam
 
@@ -438,6 +440,7 @@ beamGrad.Transparency = NumberSequence.new({
 NumberSequenceKeypoint.new(0, 1),
 NumberSequenceKeypoint.new(0.5, 0.45),
 NumberSequenceKeypoint.new(1, 1),
+})
 beamGrad.Color = ColorSequence.new(Color3.fromRGB(220, 30, 55), Color3.new(1, 1, 1))
 beamGrad.Parent = bgScanBeam
 
