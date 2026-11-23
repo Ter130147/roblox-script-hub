@@ -342,7 +342,11 @@ end
 return true
 end
 
--- [2] Fish Chaos จับตำแหน่งตามเลน 1-5 และหลีกเลี่ยงสีบูต (น้ำตาล)
+local lastChaosLane = nil
+local lastChaosLaneTime = 0
+local lastMemTurnState = false
+
+-- [2] Fish Chaos ปรับกันกดย้ำเลนเดิมซ้ำ และเน้นเป้าที่ใกล้โซนรับด้านล่าง
 local function tryPlayFishChaosGame(mg, allText)
 local isChaos = string.find(allText, "FISH CHAOS", 1, true) ~= nil
 or string.find(allText, "ความโกลาหลของปลา", 1, true) ~= nil
@@ -350,10 +354,11 @@ or string.find(allText, "GOLDEN +30", 1, true) ~= nil
 or string.find(allText, "BOOT -15", 1, true) ~= nil
 
 if not isChaos then
+lastChaosLane = nil
 return false
 end
 
-if tick() - lastActionTime < 0.08 then
+if tick() - lastActionTime < 0.065 then
 return true
 end
 
@@ -408,7 +413,7 @@ for _, area in ipairs(areas) do
 local aPos = area.AbsolutePosition
 local aSz = area.AbsoluteSize
 local playTopY = aPos.Y + 12
-local playBotY = (laneBottomY or (aPos.Y + aSz.Y * 0.85)) - 10
+local playBotY = (laneBottomY or (aPos.Y + aSz.Y * 0.85)) - 8
 
 for _, obj in ipairs(area:GetDescendants()) do
 if obj:IsA("GuiObject") and obj.Visible then
@@ -417,9 +422,13 @@ local isBootName = string.find(nLower, "boot", 1, true)
 or string.find(nLower, "shoe", 1, true)
 or string.find(nLower, "รองเท้า", 1, true)
 or string.find(nLower, "บูต", 1, true)
+local isUiChrome = string.find(nLower, "lane", 1, true)
+or string.find(nLower, "slot", 1, true)
+or string.find(nLower, "bg", 1, true)
+or string.find(nLower, "pond", 1, true)
 
 local sz = obj.AbsoluteSize
-if not isBootName and sz.X >= 18 and sz.X <= 150 and sz.Y >= 18 and sz.Y <= 150 then
+if not isBootName and not isUiChrome and sz.X >= 18 and sz.X <= 150 and sz.Y >= 18 and sz.Y <= 150 then
 local pos = obj.AbsolutePosition
 local cx = pos.X + (sz.X * 0.5)
 local cy = pos.Y + (sz.Y * 0.5)
@@ -432,11 +441,11 @@ col = obj.ImageColor3
 end
 end
 
-local isBrownBoot = (col.R > 0.35 and col.G > 0.14 and col.G < 0.52 and col.B < 0.28 and col.R > col.G * 1.25)
+local isBrownBoot = (col.R > 0.34 and col.G > 0.13 and col.G < 0.54 and col.B < 0.30 and col.R > col.G * 1.22)
 
 if not isBrownBoot then
 local matchedLane = nil
-local minDist = 48
+local minDist = 44
 for idx = 1, 5 do
 local lx = laneCenters[idx]
 if lx then
@@ -452,7 +461,8 @@ if matchedLane then
 local isGold = (col.R > 0.78 and col.G > 0.65 and col.B < 0.35)
 or (string.find(nLower, "gold", 1, true) ~= nil)
 local progress = math.clamp((cy - playTopY) / math.max(1, (playBotY - playTopY)), 0, 1)
-local score = (progress * 40) + (isGold and 25 or 0) - (minDist * 0.35)
+local repeatPenalty = (matchedLane == lastChaosLane and (tick() - lastChaosLaneTime) < 0.22) and 35 or 0
+local score = (progress * 50) + (isGold and 25 or 0) - (minDist * 0.35) - repeatPenalty
 if score > bestScore then
 bestScore = score
 bestLane = matchedLane
@@ -468,6 +478,8 @@ end
 
 if bestLane then
 lastActionTime = tick()
+lastChaosLane = bestLane
+lastChaosLaneTime = tick()
 if laneButtons[bestLane] then
 instantClickMiniGame(laneButtons[bestLane])
 elseif bestTarget then
@@ -479,6 +491,7 @@ end
 return true
 end
 
+-- [3] Bait Memory จับไฮไลต์ให้ครอบคลุมขึ้นและล้างคิวเมื่อเริ่มรอบใหม่
 local function tryPlayMemoryBaitGame(mg, allText)
 local areas = getActiveMiniGameAreas(mg)
 local choices = {}
@@ -510,12 +523,21 @@ or string.find(allText, "BAIT MEMORY", 1, true) ~= nil
 or string.find(allText, "ความจำเหยื่อ", 1, true) ~= nil
 
 if not isMemoryMode then
+lastMemTurnState = false
 return false
 end
 
 local yourTurn = string.find(allText, "YOUR TURN", 1, true) ~= nil
 or string.find(allText, "REPEAT THE ORDER", 1, true) ~= nil
 or string.find(allText, "ถึงตาคุณ", 1, true) ~= nil
+
+if yourTurn and not lastMemTurnState then
+lastHighlightedKey = nil
+elseif (not yourTurn) and lastMemTurnState then
+sequenceQueue = {}
+lastHighlightedKey = nil
+end
+lastMemTurnState = yourTurn
 
 local litIdx = nil
 for idx = 1, 4 do
@@ -533,17 +555,27 @@ end
 if not highlighted then
 local bg = c.BackgroundColor3
 local brightness = (bg.R + bg.G + bg.B) / 3
-if brightness > 0.88 or c.BackgroundTransparency < 0.05 then
+if brightness > 0.85 or c.BackgroundTransparency < 0.05 then
+highlighted = true
+end
+end
+
+if not highlighted and (c:IsA("ImageLabel") or c:IsA("ImageButton")) then
+local ic = c.ImageColor3
+if ((ic.R + ic.G + ic.B) / 3) > 0.90 and c.ImageTransparency < 0.15 then
 highlighted = true
 end
 end
 
 if not highlighted then
 for _, d in ipairs(c:GetDescendants()) do
-if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.2 then
+if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.0 then
 highlighted = true
 break
-elseif d:IsA("UIScale") and d.Scale > 1.04 then
+elseif d:IsA("UIScale") and d.Scale > 1.03 then
+highlighted = true
+break
+elseif d:IsA("GuiObject") and d.Visible and string.find(string.lower(d.Name), "glow", 1, true) then
 highlighted = true
 break
 end
@@ -552,10 +584,10 @@ end
 
 if not highlighted and rootBtn then
 for _, d in ipairs(rootBtn:GetDescendants()) do
-if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.2 then
+if d:IsA("UIStroke") and d.Enabled and d.Thickness >= 2.0 then
 highlighted = true
 break
-elseif d:IsA("UIScale") and d.Scale > 1.04 then
+elseif d:IsA("UIScale") and d.Scale > 1.03 then
 highlighted = true
 break
 end
@@ -580,7 +612,7 @@ end
 return true
 end
 
-if tick() - lastActionTime < 0.055 then
+if tick() - lastActionTime < 0.06 then
 return true
 end
 
