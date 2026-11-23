@@ -175,7 +175,7 @@ sg.ResetOnSpawn = false
 sg.DisplayOrder = 999
 sg.Parent = pg
 
--- ปุ่มโลโก้ "Ter" แบบ 3D ลอยตัว (ชัดเจน ไม่ซ้อนเลเยอร์)
+-- ปุ่มโลโก้ "Ter" แบบ 3D ลอยตัว
 local miniHolder = Instance.new("Frame")
 miniHolder.Name = "TerMiniHolder"
 miniHolder.Size = UDim2.fromOffset(62, 64)
@@ -183,8 +183,8 @@ miniHolder.Position = UDim2.new(0, 18, 0.25, 0)
 miniHolder.BackgroundTransparency = 1
 miniHolder.Visible = false
 miniHolder.ZIndex = 50
+miniHolder.Parent = sg
 
-	miniHolder.Parent = sg
 local miniBack = Instance.new("Frame")
 miniBack.Name = "Ter3DShadowBox"
 miniBack.Size = UDim2.fromOffset(50, 50)
