@@ -412,7 +412,7 @@ local lastChaosLane = nil
 local lastChaosLaneTime = 0
 local lastMemTurnState = false
 
--- [2] Fish Chaos ปรับกันกดย้ำเลนเดิมซ้ำ และเน้นเป้าที่ใกล้โซนรับด้านล่าง
+-- [2] Fish Chaos จับเลน 1-5 ทันทีเมื่อมีปลาโผล่ และหลบเฉพาะบูตสีน้ำตาลเข้ม
 local function tryPlayFishChaosGame(mg, allText)
 local isChaos = string.find(allText, "FISH CHAOS", 1, true) ~= nil
 or string.find(allText, "ความโกลาหลของปลา", 1, true) ~= nil
@@ -424,7 +424,7 @@ lastChaosLane = nil
 return false
 end
 
-if tick() - lastActionTime < 0.065 then
+if tick() - lastActionTime < 0.05 then
 return true
 end
 
@@ -478,8 +478,8 @@ local bestScore = -9999
 for _, area in ipairs(areas) do
 local aPos = area.AbsolutePosition
 local aSz = area.AbsoluteSize
-local playTopY = aPos.Y + 12
-local playBotY = (laneBottomY or (aPos.Y + aSz.Y * 0.85)) - 8
+local playTopY = aPos.Y + 8
+local playBotY = (laneBottomY or (aPos.Y + aSz.Y * 0.85)) - 4
 
 for _, obj in ipairs(area:GetDescendants()) do
 if obj:IsA("GuiObject") and obj.Visible then
@@ -494,7 +494,7 @@ or string.find(nLower, "bg", 1, true)
 or string.find(nLower, "pond", 1, true)
 
 local sz = obj.AbsoluteSize
-if not isBootName and not isUiChrome and sz.X >= 18 and sz.X <= 150 and sz.Y >= 18 and sz.Y <= 150 then
+if not isBootName and not isUiChrome and sz.X >= 14 and sz.X <= 180 and sz.Y >= 14 and sz.Y <= 180 then
 local pos = obj.AbsolutePosition
 local cx = pos.X + (sz.X * 0.5)
 local cy = pos.Y + (sz.Y * 0.5)
@@ -507,11 +507,12 @@ col = obj.ImageColor3
 end
 end
 
-local isBrownBoot = (col.R > 0.34 and col.G > 0.13 and col.G < 0.54 and col.B < 0.30 and col.R > col.G * 1.22)
+-- กันเฉพาะโทนสีน้ำตาลเข้มจัดของรองเท้าบูต ไม่บล็อกปลาสีส้ม/ชมพู
+local isDarkBrownBoot = (col.R > 0.42 and col.G < 0.34 and col.B < 0.18 and col.R > col.G * 1.45)
 
-if not isBrownBoot then
+if not isDarkBrownBoot then
 local matchedLane = nil
-local minDist = 44
+local minDist = 56
 for idx = 1, 5 do
 local lx = laneCenters[idx]
 if lx then
@@ -524,11 +525,9 @@ end
 end
 
 if matchedLane then
-local isGold = (col.R > 0.78 and col.G > 0.65 and col.B < 0.35)
-or (string.find(nLower, "gold", 1, true) ~= nil)
 local progress = math.clamp((cy - playTopY) / math.max(1, (playBotY - playTopY)), 0, 1)
-local repeatPenalty = (matchedLane == lastChaosLane and (tick() - lastChaosLaneTime) < 0.22) and 35 or 0
-local score = (progress * 50) + (isGold and 25 or 0) - (minDist * 0.35) - repeatPenalty
+local repeatPenalty = (matchedLane == lastChaosLane and (tick() - lastChaosLaneTime) < 0.16) and 25 or 0
+local score = (progress * 45) - (minDist * 0.25) - repeatPenalty
 if score > bestScore then
 bestScore = score
 bestLane = matchedLane
