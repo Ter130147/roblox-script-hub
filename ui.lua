@@ -906,9 +906,11 @@ return
 end
 clk += dt
 -- ชื่อฮับและชื่อแมพ: สี RGB วิ่งล้วน
-local hPure = (clk * 0.42) % 1
-if rgb and rgb.Parent then
-rgb.Color = ColorSequence.new({
+local hPure = (clk * 0.45) % 1
+local titleGradObj = title and (title:FindFirstChildOfClass("UIGradient") or title:FindFirstChild("TitleWhiteRgbGrad"))
+if titleGradObj then
+titleGradObj.Rotation = 0
+titleGradObj.Color = ColorSequence.new({
 ColorSequenceKeypoint.new(0.00, Color3.fromHSV(hPure, 1, 1)),
 ColorSequenceKeypoint.new(0.25, Color3.fromHSV((hPure + 0.20) % 1, 1, 1)),
 ColorSequenceKeypoint.new(0.50, Color3.fromHSV((hPure + 0.40) % 1, 1, 1)),
@@ -916,14 +918,11 @@ ColorSequenceKeypoint.new(0.75, Color3.fromHSV((hPure + 0.60) % 1, 1, 1)),
 ColorSequenceKeypoint.new(1.00, Color3.fromHSV((hPure + 0.80) % 1, 1, 1)),
 })
 end
--- ชื่อฮับและชื่อแมพ: สี RGB วิ่งล้วน (ไม่เอาขาวสลับแดง)
-
 rot = (rot + dt * 110) % 360
 if mGrad then
 mGrad.Rotation = rot
 end
 
-,
 end
 
 -- เอฟเฟกต์วิบวับวิ่งข้างหลัง UI
