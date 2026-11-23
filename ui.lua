@@ -435,7 +435,7 @@ local hubSubLbl = Instance.new("TextLabel")
 hubSubLbl.Size = UDim2.fromOffset(420, 16)
 hubSubLbl.Position = UDim2.fromOffset(60, 28)
 hubSubLbl.BackgroundTransparency = 1
-hubSubLbl.Text = "3D Red Edition  •  Granular Module Controls"
+hubSubLbl.Text = "3D Red Edition  •  Granular Sub-Controls"
 hubSubLbl.Font = Enum.Font.Gotham
 hubSubLbl.TextSize = 11
 hubSubLbl.TextColor3 = PALETTE.TextSecondary
@@ -1007,7 +1007,7 @@ em.frame.BackgroundTransparency = math.clamp(em.baseTrans + pulse, 0.08, 0.78)
 end
 end)
 
-print("[UI] Mounted Granular Controls UI")
+print("[UI] Mounted Granular Sub-Controls UI")
 end
 
 return UI
