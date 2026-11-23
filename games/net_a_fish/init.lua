@@ -107,47 +107,47 @@ return false
 end
 
 local function fireGuiButton(guiObj)
-if not guiObj or not guiObj.Visible then
-return false
-end
+    if not guiObj or not guiObj.Visible then
+        return false
+    end
 
-local fired = false
-pcall(function()
-if getconnections then
-local btn = guiObj:IsA("GuiButton") and guiObj
-or guiObj:FindFirstAncestorWhichIsA("GuiButton")
-or guiObj:FindFirstChildWhichIsA("GuiButton", true)
-if btn then
-for _, conn in ipairs(getconnections(btn.MouseButton1Down)) do
-conn:Fire()
-fired = true
-end
-for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
-conn:Fire()
-fired = true
-end
-for _, conn in ipairs(getconnections(btn.Activated)) do
-conn:Fire()
-fired = true
-end
-end
-end
-end)
+    local btn = guiObj:IsA("GuiButton") and guiObj
+        or guiObj:FindFirstAncestorWhichIsA("GuiButton")
+        or guiObj:FindFirstChildWhichIsA("GuiButton", true)
+        or guiObj
 
-pcall(function()
-local pos = guiObj.AbsolutePosition
-local sz = guiObj.AbsoluteSize
-if pos and sz and sz.X > 4 and sz.Y > 4 then
-local inset = GuiService:GetGuiInset()
-local cx = pos.X + (sz.X * 0.5) + inset.X
-local cy = pos.Y + (sz.Y * 0.5) + inset.Y
-VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
-VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
-fired = true
-end
-end)
+    local fired = false
+    pcall(function()
+        if getconnections and btn and btn:IsA("GuiButton") then
+            for _, evName in ipairs({ "MouseButton1Down", "MouseButton1Click", "Activated" }) do
+                local sig = btn[evName]
+                if sig then
+                    for _, conn in ipairs(getconnections(sig)) do
+                        conn:Fire()
+                        fired = true
+                    end
+                end
+            end
+        end
+    end)
 
-return fired
+    pcall(function()
+        local targetBox = (guiObj:FindFirstChild("Face", true) or guiObj)
+        local pos = targetBox.AbsolutePosition
+        local sz = targetBox.AbsoluteSize
+        if pos and sz and sz.X > 4 and sz.Y > 4 then
+            local inset = GuiService:GetGuiInset()
+            local cx = math.floor(pos.X + (sz.X * 0.5) + inset.X)
+            local cy = math.floor(pos.Y + (sz.Y * 0.5) + inset.Y)
+            VirtualInputManager:SendMouseMoveEvent(cx, cy, game)
+            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+            task.wait(0.03)
+            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+            fired = true
+        end
+    end)
+
+    return fired
 end
 
 local function tapKey(keyCode)
