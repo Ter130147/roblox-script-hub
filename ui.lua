@@ -239,7 +239,66 @@ wrap.AnchorPoint = Vector2.new(0.5, 0.5)
 wrap.BackgroundTransparency = 1
 wrap.Parent = sg
 
-local shadow3D = Instance.new("Frame")
+-- เอฟเฟกต์วิบวับวิ่งข้างหลัง UI
+local backSparkleLayer = Instance.new("Frame")
+backSparkleLayer.Name = "BackSparkleLayer"
+backSparkleLayer.Size = UDim2.fromOffset(644, 392)
+backSparkleLayer.Position = UDim2.fromOffset(-6, -5)
+backSparkleLayer.BackgroundTransparency = 1
+backSparkleLayer.ClipsDescendants = true
+backSparkleLayer.ZIndex = 0
+backSparkleLayer.Parent = wrap
+
+local sparkleBeam = Instance.new("Frame")
+sparkleBeam.Name = "SparkleSweepBehind"
+sparkleBeam.Size = UDim2.new(0.28, 0, 1.6, 0)
+sparkleBeam.Position = UDim2.new(-0.35, 0, -0.3, 0)
+sparkleBeam.Rotation = 24
+sparkleBeam.BackgroundColor3 = Color3.new(1, 1, 1)
+sparkleBeam.BackgroundTransparency = 0.55
+sparkleBeam.BorderSizePixel = 0
+sparkleBeam.ZIndex = 0
+sparkleBeam.Parent = backSparkleLayer
+local sbGrad = Instance.new("UIGradient")
+sbGrad.Transparency = NumberSequence.new({
+NumberSequenceKeypoint.new(0.00, 1),
+NumberSequenceKeypoint.new(0.35, 0.72),
+NumberSequenceKeypoint.new(0.50, 0.15),
+NumberSequenceKeypoint.new(0.65, 0.72),
+NumberSequenceKeypoint.new(1.00, 1),
+})
+sbGrad.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0.00, Color3.fromRGB(220, 30, 55)),
+ColorSequenceKeypoint.new(0.50, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(1.00, Color3.fromRGB(120, 200, 255)),
+})
+sbGrad.Parent = sparkleBeam
+
+local sparkleDots = {}
+local dotSpecs = {
+{0.12, 0.18, 8, 1.0},
+{0.34, 0.78, 10, 2.3},
+{0.58, 0.14, 7, 3.7},
+{0.77, 0.84, 9, 5.1},
+{0.89, 0.42, 6, 6.4},
+{0.22, 0.52, 7, 7.8},
+}
+for idx, spec in ipairs(dotSpecs) do
+local dot = Instance.new("Frame")
+dot.Name = "BackSparkleDot_" .. tostring(idx)
+dot.Size = UDim2.fromOffset(spec[3], spec[3])
+dot.Position = UDim2.fromScale(spec[1], spec[2])
+dot.AnchorPoint = Vector2.new(0.5, 0.5)
+dot.BackgroundColor3 = Color3.new(1, 1, 1)
+dot.BackgroundTransparency = 0.2
+dot.BorderSizePixel = 0
+dot.ZIndex = 0
+dot.Parent = backSparkleLayer
+round(dot, 99)
+table.insert(sparkleDots, { frame = dot, bx = spec[1], by = spec[2], phase = spec[4] })
+end
+
+	local shadow3D = Instance.new("Frame")
 shadow3D.Size = UDim2.fromOffset(620, 368)
 shadow3D.Position = UDim2.fromOffset(11, 9)
 shadow3D.BackgroundColor3 = PALETTE.CrimsonDeep
@@ -311,6 +370,9 @@ title.Text = (hubTitle or "TER HUB") .. "  •  NET A FISH"
 title.Font = Enum.Font.GothamBlack
 title.TextSize = 14
 title.TextColor3 = Color3.new(1, 1, 1)
+	local TitleWhiteRgbGrad = Instance.new("UIGradient")
+	TitleWhiteRgbGrad.Name = "TitleWhiteRgbGrad"
+	TitleWhiteRgbGrad.Parent = title
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 5
 title.Parent = top
@@ -890,104 +952,49 @@ conn:Disconnect()
 end
 return
 end
-rot = (rot + dt * 110) % 360
-mGrad.Rotation = rot
 clk += dt
+rot = (rot + dt * 110) % 360
+if mGrad then
+mGrad.Rotation = rot
+end
 
--- หัวข้อชื่อฮับและชื่อแมพ: สีขาว สลับ สี RGB ไหลต่อเนื่อง
-local rgbShift = (clk * 0.35) % 1
-local cRgb1 = Color3.fromHSV(rgbShift, 0.85, 1)
-local cRgb2 = Color3.fromHSV((rgbShift + 0.18) % 1, 0.85, 1)
-local cRgb3 = Color3.fromHSV((rgbShift + 0.36) % 1, 0.85, 1)
--- หัวข้อชื่อฮับและชื่อแมพ: สีขาว สลับ สี RGB แบบเอฟเฟกต์
-local hBase = (clk * 0.45) % 1
-local c1 = Color3.fromHSV(hBase, 0.95, 1)
-local c2 = Color3.fromHSV((hBase + 0.14) % 1, 0.95, 1)
-local c3 = Color3.fromHSV((hBase + 0.28) % 1, 0.95, 1)
-local c4 = Color3.fromHSV((hBase + 0.42) % 1, 0.95, 1)
-crimsonTitleGrad.Rotation = 0
-crimsonTitleGrad.Color = ColorSequence.new({
+-- หัวข้อชื่อแมพ/ฮับ: สีขาว สลับ สี RGB วิ่งต่อเนื่อง
+local h0 = (clk * 0.55) % 1
+local rgbA = Color3.fromHSV(h0, 1, 1)
+local rgbB = Color3.fromHSV((h0 + 0.16) % 1, 1, 1)
+local rgbC = Color3.fromHSV((h0 + 0.33) % 1, 1, 1)
+local rgbD = Color3.fromHSV((h0 + 0.50) % 1, 1, 1)
+local rgbE = Color3.fromHSV((h0 + 0.67) % 1, 1, 1)
+if TitleWhiteRgbGrad and TitleWhiteRgbGrad.Parent then
+TitleWhiteRgbGrad.Rotation = 0
+TitleWhiteRgbGrad.Color = ColorSequence.new({
 ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.18, c1),
-ColorSequenceKeypoint.new(0.36, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.54, c2),
-ColorSequenceKeypoint.new(0.72, c3),
-ColorSequenceKeypoint.new(0.88, c4),
+ColorSequenceKeypoint.new(0.14, rgbA),
+ColorSequenceKeypoint.new(0.28, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.42, rgbB),
+ColorSequenceKeypoint.new(0.56, rgbC),
+ColorSequenceKeypoint.new(0.70, Color3.new(1, 1, 1)),
+ColorSequenceKeypoint.new(0.84, rgbD),
+ColorSequenceKeypoint.new(0.92, rgbE),
 ColorSequenceKeypoint.new(1.00, Color3.new(1, 1, 1)),
 })
-crimsonTitleGrad.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.28, cRgb1),
-ColorSequenceKeypoint.new(0.52, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.78, cRgb2),
-ColorSequenceKeypoint.new(1.00, cRgb3),
-})
-
--- เอฟเฟกต์พื้นหลังด้านในเคลื่อนไหวต่อเนื่อง
-local bgBeamObj = main:FindFirstChild("InnerBgGlow") and main.InnerBgGlow:FindFirstChild("BgScanBeam")
-if bgBeamObj then
-local beamY = ((clk * 0.42) % 1.55) - 0.35
-bgBeamObj.Position = UDim2.new(0, 0, beamY, 0)
 end
-local gridGlowObj = main:FindFirstChild("InnerBgGlow")
-if gridGlowObj then
-local g = gridGlowObj:FindFirstChildOfClass("UIGradient")
-if g then
-g.Rotation = (25 + math.sin(clk * 1.4) * 18) % 360
+
+-- เอฟเฟกต์วิบวับวิ่งข้างหลัง UI
+local sb = wrap:FindFirstChild("BackSparkleLayer") and wrap.BackSparkleLayer:FindFirstChild("SparkleSweepBehind")
+if sb then
+local sx = ((clk * 0.52) % 1.75) - 0.45
+sb.Position = UDim2.new(sx, 0, -0.3, 0)
+end
+if sparkleDots then
+for _, item in ipairs(sparkleDots) do
+local wave = 0.5 + 0.5 * math.sin(clk * 4.5 + item.phase)
+item.frame.BackgroundTransparency = 0.15 + (0.75 * (1 - wave))
+item.frame.Position = UDim2.fromScale(item.bx, item.by + math.sin(clk * 2.2 + item.phase) * 0.025)
 end
 end
 
--- หัวข้อชื่อฮับและชื่อแมพ: สีขาว สลับ สี RGB ไหลต่อเนื่อง
-local rgbShift = (clk * 0.35) % 1
-local cRgb1 = Color3.fromHSV(rgbShift, 0.85, 1)
-local cRgb2 = Color3.fromHSV((rgbShift + 0.18) % 1, 0.85, 1)
-local cRgb3 = Color3.fromHSV((rgbShift + 0.36) % 1, 0.85, 1)
--- หัวข้อชื่อฮับและชื่อแมพ: สีขาว สลับ สี RGB แบบเอฟเฟกต์
-local hBase = (clk * 0.45) % 1
-local c1 = Color3.fromHSV(hBase, 0.95, 1)
-local c2 = Color3.fromHSV((hBase + 0.14) % 1, 0.95, 1)
-local c3 = Color3.fromHSV((hBase + 0.28) % 1, 0.95, 1)
-local c4 = Color3.fromHSV((hBase + 0.42) % 1, 0.95, 1)
-crimsonTitleGrad.Rotation = 0
-crimsonTitleGrad.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.18, c1),
-ColorSequenceKeypoint.new(0.36, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.54, c2),
-ColorSequenceKeypoint.new(0.72, c3),
-ColorSequenceKeypoint.new(0.88, c4),
-ColorSequenceKeypoint.new(1.00, Color3.new(1, 1, 1)),
-})
-crimsonTitleGrad.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.28, cRgb1),
-ColorSequenceKeypoint.new(0.52, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.78, cRgb2),
-ColorSequenceKeypoint.new(1.00, cRgb3),
-})
-
--- เอฟเฟกต์พื้นหลังด้านในเคลื่อนไหวต่อเนื่อง
-local bgBeamObj = main:FindFirstChild("InnerBgGlow") and main.InnerBgGlow:FindFirstChild("BgScanBeam")
-if bgBeamObj then
-local beamY = ((clk * 0.42) % 1.55) - 0.35
-bgBeamObj.Position = UDim2.new(0, 0, beamY, 0)
-end
-local gridGlowObj = main:FindFirstChild("InnerBgGlow")
-if gridGlowObj then
-local g = gridGlowObj:FindFirstChildOfClass("UIGradient")
-if g then
-g.Rotation = (25 + math.sin(clk * 1.4) * 18) % 360
-end
-end
-
-local sweepX = ((clk * 0.65) % 1.8) - 0.5
-for _, obj in ipairs(main:GetDescendants()) do
-if obj:IsA("Frame") and obj.Name == "Sweep3D" then
-obj.Position = UDim2.new(sweepX, 0, -0.4, 0)
-end
-end
-
-if miniHolder.Visible then
+	\tif miniHolder.Visible then
 local pulse = math.sin(clk * 4.2) * 1.5
 miniIcon.Position = UDim2.fromOffset(2, 2 + pulse * 0.5)
 miniStroke.Transparency = 0.1 + (0.15 * (0.5 + 0.5 * math.sin(clk * 4.2)))
