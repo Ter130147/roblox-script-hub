@@ -674,7 +674,8 @@ local function getRootPart()
 end
 
 local function findNearestPadPart(rootPos)
-    local bestPart = nil
+    local bestPos = nil
+    local bestHalfHeight = 2
     local bestDist = math.huge
 
     for _, obj in ipairs(workspace:GetDescendants()) do
@@ -686,21 +687,48 @@ local function findNearestPadPart(rootPos)
                 or string.find(nLow, "stand", 1, true)
                 or string.find(nLow, "button", 1, true)
                 or string.find(nLow, "plate", 1, true)
+                or string.find(nLow, "spot", 1, true)
+                or string.find(nLow, "zone", 1, true)
+                or string.find(nLow, "plot", 1, true)
+                or string.find(nLow, "claim", 1, true)
                 or string.find(pLow, "pad", 1, true)
                 or string.find(pLow, "platform", 1, true)
+                or string.find(pLow, "plot", 1, true)
                 or obj:FindFirstChildWhichIsA("TouchTransmitter") ~= nil
 
-            if isPad and obj.Size.Magnitude < 250 then
+            if isPad then
                 local dist = (obj.Position - rootPos).Magnitude
-                if dist < bestDist then
+                if dist > 2 and dist < bestDist then
                     bestDist = dist
-                    bestPart = obj
+                    bestPos = obj.Position
+                    bestHalfHeight = obj.Size.Y * 0.5
+                end
+            end
+        elseif obj:IsA("Model") then
+            local nLow = string.lower(obj.Name)
+            local isPadModel = string.find(nLow, "pad", 1, true)
+                or string.find(nLow, "platform", 1, true)
+                or string.find(nLow, "stand", 1, true)
+                or string.find(nLow, "plot", 1, true)
+                or string.find(nLow, "spot", 1, true)
+
+            if isPadModel then
+                local ok, pivot = pcall(function()
+                    return obj:GetPivot()
+                end)
+                if ok and pivot then
+                    local dist = (pivot.Position - rootPos).Magnitude
+                    if dist > 2 and dist < bestDist then
+                        bestDist = dist
+                        bestPos = pivot.Position
+                        bestHalfHeight = 2
+                    end
                 end
             end
         end
     end
 
-    return bestPart
+    return bestPos, bestHalfHeight
 end
 
 local function stepAutoPadTp(cfg)
@@ -718,10 +746,10 @@ local function stepAutoPadTp(cfg)
         return
     end
 
-    local padPart = findNearestPadPart(root.Position)
-    if padPart then
+    local padPos, halfH = findNearestPadPart(root.Position)
+    if padPos then
         lastPadTpTime = tick()
-        local targetPos = padPart.Position + Vector3.new(0, (padPart.Size.Y * 0.5) + 3.2, 0)
+        local targetPos = padPos + Vector3.new(0, (halfH or 2) + 3.2, 0)
         pcall(function()
             root.CFrame = CFrame.new(targetPos, targetPos + root.CFrame.LookVector)
         end)
