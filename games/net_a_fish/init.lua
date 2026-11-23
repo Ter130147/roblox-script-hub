@@ -22,33 +22,99 @@ end
 end)
 
 local function scanGameStructure()
-print("=== 1. REMOTES IN REPLICATEDSTORAGE ===")
-local r = ReplicatedStorage:FindFirstChild("Remotes")
-if r then
-for _, obj in ipairs(r:GetDescendants()) do
-if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-print(obj.ClassName, "|", obj:GetFullName())
+print("==========================================================")
+print("[DeepScan] 1. REMOTES & BINDABLES")
+local foundRemote = false
+for _, service in ipairs({ ReplicatedStorage, workspace }) do
+for _, obj in ipairs(service:GetDescendants()) do
+if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") or obj:IsA("BindableEvent") or obj:IsA("BindableFunction") then
+foundRemote = true
+print(string.format("  - [%s] %s", obj.ClassName, obj:GetFullName()))
 end
 end
+end
+if not foundRemote then
+print("  - (ไม่พบ Remote/Bindable)")
 end
 
-print("=== 2. ACTIVE PLAYER GUIS ===")
+print("[DeepScan] 2. PLAYER GUIS & ACTIVE MINIGAMEUI")
 local pg = LocalPlayer:FindFirstChild("PlayerGui")
 if pg then
 for _, gui in ipairs(pg:GetChildren()) do
 if gui:IsA("ScreenGui") then
-print("ScreenGui:", gui.Name, "| Enabled:", tostring(gui.Enabled))
+local visButtons = 0
+for _, d in ipairs(gui:GetDescendants()) do
+if d:IsA("GuiButton") and d.Visible then
+visButtons += 1
+end
+end
+print(string.format("  - ScreenGui: %s | Enabled: %s | VisibleButtons: %d", gui.Name, tostring(gui.Enabled), visButtons))
+end
+end
+
+local mg = pg:FindFirstChild("MiniGameUI")
+if mg and mg:IsA("ScreenGui") and mg.Enabled then
+print("  --- [MiniGameUI Visible GuiButtons] ---")
+for _, d in ipairs(mg:GetDescendants()) do
+if d:IsA("GuiButton") and d.Visible then
+local txts = {}
+if d:IsA("TextButton") and (d.Text or "") ~= "" then
+table.insert(txts, d.Text)
+end
+for _, ch in ipairs(d:GetDescendants()) do
+if ch:IsA("TextLabel") and ch.Visible and (ch.Text or "") ~= "" then
+table.insert(txts, ch.Text)
+end
+end
+print(string.format("    * BTN: %s (%s) | Act:%s | Pos:(%d,%d) | Sz:(%d,%d) | Txt:[%s]",
+d.Name, d.ClassName, tostring(d.Active),
+math.floor(d.AbsolutePosition.X), math.floor(d.AbsolutePosition.Y),
+math.floor(d.AbsoluteSize.X), math.floor(d.AbsoluteSize.Y),
+table.concat(txts, " / ")
+))
+end
+end
+
+print("  --- [MiniGameUI Visible Area / Spot / Game Elements] ---")
+local area = mg:FindFirstChild("Window")
+and mg.Window:FindFirstChild("Body")
+and mg.Window.Body:FindFirstChild("Area")
+for _, d in ipairs(mg:GetDescendants()) do
+if d:IsA("GuiObject") and d.Visible then
+local nLow = string.lower(d.Name)
+local pLow = d.Parent and string.lower(d.Parent.Name) or ""
+local isInteresting = (area and d:IsDescendantOf(area))
+or string.find(nLow, "spot", 1, true)
+or string.find(pLow, "spot", 1, true)
+or string.find(nLow, "bait", 1, true)
+or string.find(nLow, "lane", 1, true)
+or string.find(nLow, "needle", 1, true)
+or string.find(nLow, "zone", 1, true)
+or string.find(nLow, "gold", 1, true)
+or string.find(nLow, "reel", 1, true)
+if isInteresting then
+local c = d.BackgroundColor3
+local txt = (d:IsA("TextLabel") or d:IsA("TextButton")) and string.gsub(tostring(d.Text or ""), "[\r\n]+", " ") or ""
+print(string.format("    * %s (%s) | T:%.2f | BG:[%d,%d,%d] | Pos:(%d,%d) | Sz:(%d,%d) | Txt:'%s' | %s",
+d.Name, d.ClassName, d.BackgroundTransparency,
+math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255),
+math.floor(d.AbsolutePosition.X), math.floor(d.AbsolutePosition.Y),
+math.floor(d.AbsoluteSize.X), math.floor(d.AbsoluteSize.Y),
+txt, d:GetFullName()
+))
+end
+end
 end
 end
 end
 
-print("=== 3. WORKSPACE FOLDERS / MODELS ===")
+print("[DeepScan] 3. WORKSPACE TOP-LEVEL & CHILD COUNTS")
 for _, obj in ipairs(workspace:GetChildren()) do
 if obj:IsA("Folder") or obj:IsA("Model") then
-print("Workspace:", obj.ClassName, "|", obj.Name)
+print(string.format("  - %s (%s) | Descendants: %d", obj.Name, obj.ClassName, #obj:GetDescendants()))
 end
 end
-print("=== SCAN COMPLETE ===")
+print("==========================================================")
 end
 
 local function containsDangerText(container)
