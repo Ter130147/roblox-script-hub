@@ -178,7 +178,7 @@ sg.Parent = pg
 -- ปุ่มโลโก้ "Ter" แบบ 3D ลอยตัว
 local miniHolder = Instance.new("Frame")
 miniHolder.Name = "TerMiniHolder"
-miniHolder.Size = UDim2.fromOffset(62, 64)
+miniHolder.Size = UDim2.fromOffset(64, 66)
 miniHolder.Position = UDim2.new(0, 18, 0.25, 0)
 miniHolder.BackgroundTransparency = 1
 miniHolder.Visible = false
@@ -187,30 +187,49 @@ miniHolder.Parent = sg
 
 local miniBack = Instance.new("Frame")
 miniBack.Name = "Ter3DShadowBox"
-miniBack.Size = UDim2.fromOffset(50, 50)
-miniBack.Position = UDim2.fromOffset(6, 7)
-miniBack.BackgroundColor3 = Color3.fromRGB(145, 16, 32)
+miniBack.Size = UDim2.fromOffset(52, 52)
+miniBack.Position = UDim2.fromOffset(6, 8)
+miniBack.BackgroundColor3 = Color3.fromRGB(120, 10, 20)
 miniBack.ZIndex = 50
 miniBack.Parent = miniHolder
-round(miniBack, 14)
+round(miniBack, 15)
 
 local miniIcon = Instance.new("TextButton")
 miniIcon.Name = "TerMiniToggle"
-miniIcon.Size = UDim2.fromOffset(50, 50)
-miniIcon.Position = UDim2.fromOffset(3, 2)
-miniIcon.BackgroundColor3 = Color3.fromRGB(14, 12, 16)
-miniIcon.Text = "Ter"
-miniIcon.Font = Enum.Font.GothamBlack
-miniIcon.TextSize = 18
-miniIcon.TextColor3 = Color3.new(1, 1, 1)
+miniIcon.Size = UDim2.fromOffset(52, 52)
+miniIcon.Position = UDim2.fromOffset(3, 3)
+miniIcon.BackgroundColor3 = Color3.fromRGB(14, 11, 15)
+miniIcon.Text = ""
 miniIcon.AutoButtonColor = false
+miniIcon.ClipsDescendants = true
 miniIcon.ZIndex = 52
 miniIcon.Parent = miniHolder
-round(miniIcon, 14)
-local miniStroke = stroke(miniIcon, Color3.fromRGB(255, 78, 102), 2, 0)
-grad3(miniIcon, Color3.fromRGB(72, 12, 24), Color3.fromRGB(14, 12, 16), Color3.fromRGB(42, 8, 16)).Rotation = 135
+round(miniIcon, 15)
+local miniStroke = stroke(miniIcon, Color3.fromRGB(205, 20, 36), 2.2, 0)
 
+local terShadow = Instance.new("TextLabel")
+terShadow.Name = "TerShadow3D"
+terShadow.Size = UDim2.fromScale(1, 1)
+terShadow.Position = UDim2.fromOffset(2, 2)
+terShadow.BackgroundTransparency = 1
+terShadow.Text = "Ter"
+terShadow.Font = Enum.Font.GothamBlack
+terShadow.TextSize = 20
+terShadow.TextColor3 = Color3.fromRGB(165, 12, 24)
+terShadow.ZIndex = 53
+terShadow.Parent = miniIcon
 
+local terMain = Instance.new("TextLabel")
+terMain.Name = "TerLabel3D"
+terMain.Size = UDim2.fromScale(1, 1)
+terMain.Position = UDim2.fromOffset(0, 0)
+terMain.BackgroundTransparency = 1
+terMain.Text = "Ter"
+terMain.Font = Enum.Font.GothamBlack
+terMain.TextSize = 20
+terMain.TextColor3 = Color3.fromRGB(255, 255, 255)
+terMain.ZIndex = 54
+terMain.Parent = miniIcon
 	local wrap = Instance.new("Frame")
 wrap.Size = UDim2.fromOffset(632, 382)
 wrap.Position = UDim2.fromScale(0.5, 0.5)
