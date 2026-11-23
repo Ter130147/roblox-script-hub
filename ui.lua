@@ -48,10 +48,6 @@ end
 local function grad3(p, c1, c2, c3)
 local g = Instance.new("UIGradient")
 g.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0, c1),
-ColorSequenceKeypoint.new(0.5, c2),
-ColorSequenceKeypoint.new(1, c3),
-})
 g.Parent = p
 return g
 end
@@ -73,12 +69,7 @@ sg.Transparency = NumberSequence.new({
 NumberSequenceKeypoint.new(0, 1),
 NumberSequenceKeypoint.new(0.5, 0.35),
 NumberSequenceKeypoint.new(1, 1),
-})
 sg.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0, baseColor or PALETTE.RedDark),
-ColorSequenceKeypoint.new(0.5, accentColor or PALETTE.RedBright),
-ColorSequenceKeypoint.new(1, baseColor or PALETTE.RedDark),
-})
 sg.Parent = sweep
 return sweep
 end
@@ -266,12 +257,7 @@ NumberSequenceKeypoint.new(0.35, 0.72),
 NumberSequenceKeypoint.new(0.50, 0.15),
 NumberSequenceKeypoint.new(0.65, 0.72),
 NumberSequenceKeypoint.new(1.00, 1),
-})
 sbGrad.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0.00, Color3.fromRGB(220, 30, 55)),
-ColorSequenceKeypoint.new(0.50, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(1.00, Color3.fromRGB(120, 200, 255)),
-})
 sbGrad.Parent = sparkleBeam
 
 local sparkleDots = {}
@@ -458,12 +444,7 @@ beamGrad.Transparency = NumberSequence.new({
 NumberSequenceKeypoint.new(0, 1),
 NumberSequenceKeypoint.new(0.5, 0.45),
 NumberSequenceKeypoint.new(1, 1),
-})
 beamGrad.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 6, 12)),
-ColorSequenceKeypoint.new(0.5, Color3.fromRGB(225, 32, 54)),
-ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 6, 12)),
-})
 beamGrad.Parent = bgScanBeam
 
 	local side = Instance.new("Frame")
@@ -538,13 +519,11 @@ local a = (k == id)
 tween(b, 0.14, {
 BackgroundColor3 = a and PALETTE.RowHighlight or PALETTE.RowBase,
 TextColor3 = a and Color3.new(1, 1, 1) or PALETTE.TextSecondary,
-})
 if tabStrokes[k] then
 tween(tabStrokes[k], 0.14, {
 Color = a and PALETTE.RedBright or PALETTE.Red,
 Thickness = a and 1.6 or 1,
 Transparency = a and 0.1 or 0.65,
-})
 end
 end
 end
@@ -950,37 +929,25 @@ end
 return
 end
 clk += dt
--- ชื่อฮับและชื่อแมพ: สี RGB วิ่งล้วน (ไม่เอาขาวสลับแดง)
+-- ชื่อฮับและชื่อแมพ: สี RGB วิ่งล้วน
 local hPure = (clk * 0.42) % 1
-local p1Col = Color3.fromHSV(hPure, 1, 1)
-local p2Col = Color3.fromHSV((hPure + 0.20) % 1, 1, 1)
-local p3Col = Color3.fromHSV((hPure + 0.40) % 1, 1, 1)
-local p4Col = Color3.fromHSV((hPure + 0.60) % 1, 1, 1)
-local p5Col = Color3.fromHSV((hPure + 0.80) % 1, 1, 1)
 if rgb and rgb.Parent then
 rgb.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0.00, p1Col),
-ColorSequenceKeypoint.new(0.25, p2Col),
-ColorSequenceKeypoint.new(0.50, p3Col),
-ColorSequenceKeypoint.new(0.75, p4Col),
-ColorSequenceKeypoint.new(1.00, p5Col),
+ColorSequenceKeypoint.new(0.00, Color3.fromHSV(hPure, 1, 1)),
+ColorSequenceKeypoint.new(0.25, Color3.fromHSV((hPure + 0.20) % 1, 1, 1)),
+ColorSequenceKeypoint.new(0.50, Color3.fromHSV((hPure + 0.40) % 1, 1, 1)),
+ColorSequenceKeypoint.new(0.75, Color3.fromHSV((hPure + 0.60) % 1, 1, 1)),
+ColorSequenceKeypoint.new(1.00, Color3.fromHSV((hPure + 0.80) % 1, 1, 1)),
 })
 end
+-- ชื่อฮับและชื่อแมพ: สี RGB วิ่งล้วน (ไม่เอาขาวสลับแดง)
+
 rot = (rot + dt * 110) % 360
 if mGrad then
 mGrad.Rotation = rot
 end
 
 ,
-ColorSequenceKeypoint.new(0.14, rgbA),
-ColorSequenceKeypoint.new(0.28, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.42, rgbB),
-ColorSequenceKeypoint.new(0.56, rgbC),
-ColorSequenceKeypoint.new(0.70, Color3.new(1, 1, 1)),
-ColorSequenceKeypoint.new(0.84, rgbD),
-ColorSequenceKeypoint.new(0.92, rgbE),
-ColorSequenceKeypoint.new(1.00, Color3.new(1, 1, 1)),
-})
 end
 
 -- เอฟเฟกต์วิบวับวิ่งข้างหลัง UI
