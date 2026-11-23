@@ -637,205 +637,221 @@ local function tryClickStartButton(mg)
 end
 
 local function runReelMinigame(mg, allText)
-	local isReel = string.find(allText, "REEL", 1, true) ~= nil or string.find(allText, "GOLD IS PERFECT", 1, true) ~= nil
-	if not isReel then
-		lastNeedleX = nil
-		return false
-	end
-	local areas = getActiveMiniGameAreas(mg)
-	local reelBtn, greenZone, goldZone, needle = nil, nil, nil, nil
-	for _, area in ipairs(areas) do
-		for _, obj in ipairs(area:GetDescendants()) do
-			if obj:IsA("GuiObject") and obj.Visible then
-				local nLow = string.lower(obj.Name)
-				local sz = obj.AbsoluteSize
-				local c = obj.BackgroundColor3
-				if (obj:IsA("Frame") or obj:IsA("ImageLabel")) and obj.BackgroundTransparency < 0.35 then
-					if (c.R > 0.85 and c.G > 0.85 and c.B > 0.85 and sz.X >= 3 and sz.X <= 24 and sz.Y >= 20) or string.find(nLow, "needle", 1, true) then
-						needle = obj
-					end
-					if sz.X >= 4 and sz.X <= 180 and sz.Y >= 14 then
-						if (c.R > 0.72 and c.G > 0.55 and c.B < 0.35) or string.find(nLow, "gold", 1, true) or string.find(nLow, "perfect", 1, true) then
-							goldZone = obj
-						elseif (c.G > 0.52 and c.R < 0.48) or string.find(nLow, "green", 1, true) or string.find(nLow, "zone", 1, true) then
-							if sz.X <= 360 then
-								greenZone = obj
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-	for _, obj in ipairs(mg:GetDescendants()) do
-		if obj:IsA("GuiButton") and obj.Visible and not containsDangerText(obj) and string.find(string.lower(obj.Name), "reel", 1, true) then
-			reelBtn = obj
-			break
-		end
-	end
-	if needle and (tick() - lastReelPressTime >= 0.16) then
-		local nCenter = needle.AbsolutePosition.X + (needle.AbsoluteSize.X * 0.5)
-		local velX = lastNeedleX and (nCenter - lastNeedleX) or 0
-		lastNeedleX = nCenter
-		local predCenter = nCenter + (velX * 0.55)
-		local zMin, zMax
-		if goldZone then
-			zMin = goldZone.AbsolutePosition.X + 1
-			zMax = goldZone.AbsolutePosition.X + goldZone.AbsoluteSize.X - 1
-		elseif greenZone then
-			zMin = greenZone.AbsolutePosition.X + (greenZone.AbsoluteSize.X * 0.36)
-			zMax = greenZone.AbsolutePosition.X + (greenZone.AbsoluteSize.X * 0.64)
-		end
-		if zMin and zMax and ((nCenter >= zMin and nCenter <= zMax) or (predCenter >= zMin and predCenter <= zMax)) then
-			lastReelPressTime = tick()
-			lastActionTime = tick()
-			if reelBtn then fireGuiButton(reelBtn) end
-			tapKey(Enum.KeyCode.Space)
-		end
-	end
-	return true
+local isReel = string.find(allText, "REEL", 1, true) ~= nil or string.find(allText, "GOLD IS PERFECT", 1, true) ~= nil
+if not isReel then
+lastNeedleX = nil
+return false
+end
+local areas = getActiveMiniGameAreas(mg)
+local reelBtn, greenZone, goldZone, needle = nil, nil, nil, nil
+for _, area in ipairs(areas) do
+for _, obj in ipairs(area:GetDescendants()) do
+if obj:IsA("GuiObject") and obj.Visible then
+local nLow = string.lower(obj.Name)
+local sz = obj.AbsoluteSize
+local c = obj.BackgroundColor3
+if (obj:IsA("Frame") or obj:IsA("ImageLabel")) and obj.BackgroundTransparency < 0.35 then
+if (c.R > 0.85 and c.G > 0.85 and c.B > 0.85 and sz.X >= 3 and sz.X <= 24 and sz.Y >= 20) or string.find(nLow, "needle", 1, true) then
+needle = obj
+end
+if sz.X >= 4 and sz.X <= 180 and sz.Y >= 14 then
+if (c.R > 0.72 and c.G > 0.55 and c.B < 0.35) or string.find(nLow, "gold", 1, true) or string.find(nLow, "perfect", 1, true) then
+goldZone = obj
+elseif (c.G > 0.52 and c.R < 0.48) or string.find(nLow, "green", 1, true) or string.find(nLow, "zone", 1, true) then
+if sz.X <= 360 then
+greenZone = obj
+end
+end
+end
+end
+end
+end
+end
+for _, obj in ipairs(mg:GetDescendants()) do
+if obj:IsA("GuiButton") and obj.Visible and not containsDangerText(obj) and string.find(string.lower(obj.Name), "reel", 1, true) then
+reelBtn = obj
+break
+end
+end
+if needle and (tick() - lastReelPressTime >= 0.18) then
+local nCenter = needle.AbsolutePosition.X + (needle.AbsoluteSize.X * 0.5)
+local velX = lastNeedleX and math.clamp(nCenter - lastNeedleX, -40, 40) or 0
+lastNeedleX = nCenter
+local predCenter = nCenter + (velX * 0.25)
+local zMin, zMax
+if goldZone then
+zMin = goldZone.AbsolutePosition.X + 1
+zMax = goldZone.AbsolutePosition.X + goldZone.AbsoluteSize.X - 1
+elseif greenZone then
+zMin = greenZone.AbsolutePosition.X + (greenZone.AbsoluteSize.X * 0.36)
+zMax = greenZone.AbsolutePosition.X + (greenZone.AbsoluteSize.X * 0.64)
+end
+if zMin and zMax and ((nCenter >= zMin and nCenter <= zMax) or (predCenter >= zMin and predCenter <= zMax)) then
+lastReelPressTime = tick()
+lastActionTime = tick()
+if reelBtn then
+fireGuiButton(reelBtn)
+else
+tapKey(Enum.KeyCode.Space)
+end
+end
+end
+return true
 end
 
 local function runFishChaosMinigame(mg, allText)
-	local isChaos = string.find(allText, "FISH CHAOS", 1, true) ~= nil or string.find(allText, "GOLDEN +30", 1, true) ~= nil or string.find(allText, "BOOT -15", 1, true) ~= nil
-	if not isChaos then
-		lastChaosLane = nil
-		return false
-	end
-	if tick() - lastActionTime < 0.05 then
-		return true
-	end
-	local areas = getActiveMiniGameAreas(mg)
-	local laneKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five }
-	local laneCenters, laneButtons, laneBottomY = {}, {}, nil
-	for _, area in ipairs(areas) do
-		for _, obj in ipairs(area:GetDescendants()) do
-			if obj:IsA("GuiObject") and obj.Visible then
-				local txt = (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or ""
-				local laneIdx = tonumber(txt:match("^%s*(.-)%s*$"))
-				if laneIdx and laneIdx >= 1 and laneIdx <= 5 then
-					laneCenters[laneIdx] = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
-					laneBottomY = obj.AbsolutePosition.Y + (obj.AbsoluteSize.Y * 0.5)
-					local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
-					if btn and btn.Active then laneButtons[laneIdx] = btn end
-				end
-			end
-		end
-	end
-	if #areas > 0 then
-		local area = areas[1]
-		local aPos, aSz = area.AbsolutePosition, area.AbsoluteSize
-		if aSz.X > 100 and aSz.Y > 80 then
-			laneBottomY = laneBottomY or (aPos.Y + aSz.Y * 0.84)
-			for idx = 1, 5 do
-				if not laneCenters[idx] then
-					laneCenters[idx] = aPos.X + (aSz.X * ((idx - 0.5) / 5))
-				end
-			end
-		end
-	end
-	local bestLane, bestTarget, bestScore = nil, nil, -9999
-	for _, area in ipairs(areas) do
-		local aPos, aSz = area.AbsolutePosition, area.AbsoluteSize
-		local playTopY = aPos.Y + 8
-		local playBotY = (laneBottomY or (aPos.Y + aSz.Y * 0.85)) - 4
-		for _, obj in ipairs(area:GetDescendants()) do
-			if obj:IsA("GuiObject") and obj.Visible then
-				local nLow = string.lower(obj.Name)
-				local sz = obj.AbsoluteSize
-				if not string.find(nLow, "boot", 1, true) and not string.find(nLow, "lane", 1, true) and sz.X >= 14 and sz.X <= 180 and sz.Y >= 14 and sz.Y <= 180 then
-					local cx = obj.AbsolutePosition.X + (sz.X * 0.5)
-					local cy = obj.AbsolutePosition.Y + (sz.Y * 0.5)
-					if cy >= playTopY and cy <= playBotY then
-						local matchedLane, minDist = nil, 56
-						for idx = 1, 5 do
-							local lx = laneCenters[idx]
-							if lx and math.abs(cx - lx) < minDist then
-								minDist = math.abs(cx - lx)
-								matchedLane = idx
-							end
-						end
-						if matchedLane then
-							local progress = math.clamp((cy - playTopY) / math.max(1, (playBotY - playTopY)), 0, 1)
-							local score = (progress * 45) - (minDist * 0.25)
-							if score > bestScore then
-								bestScore = score
-								bestLane = matchedLane
-								bestTarget = laneButtons[matchedLane] or obj
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-	if bestLane then
-		lastActionTime = tick()
-		lastChaosLane = bestLane
-		if laneButtons[bestLane] then fireGuiButton(laneButtons[bestLane]) elseif bestTarget then fireGuiButton(bestTarget) end
-		tapKey(laneKeys[bestLane])
-	end
-	return true
+local isChaos = string.find(allText, "FISH CHAOS", 1, true) ~= nil or string.find(allText, "GOLDEN +30", 1, true) ~= nil or string.find(allText, "BOOT -15", 1, true) ~= nil
+if not isChaos then
+lastChaosLane = nil
+return false
+end
+if tick() - lastActionTime < 0.12 then
+return true
+end
+local areas = getActiveMiniGameAreas(mg)
+local laneKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five }
+local laneCenters, laneButtons, laneBottomY = {}, {}, nil
+for _, area in ipairs(areas) do
+for _, obj in ipairs(area:GetDescendants()) do
+if obj:IsA("GuiObject") and obj.Visible then
+local txt = (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or ""
+local laneIdx = tonumber(txt:match("^%s*(.-)%s*$"))
+if laneIdx and laneIdx >= 1 and laneIdx <= 5 then
+laneCenters[laneIdx] = obj.AbsolutePosition.X + (obj.AbsoluteSize.X * 0.5)
+laneBottomY = obj.AbsolutePosition.Y + (obj.AbsoluteSize.Y * 0.5)
+local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
+if btn and btn.Active then laneButtons[laneIdx] = btn end
+end
+end
+end
+end
+if #areas > 0 then
+local area = areas[1]
+local aPos, aSz = area.AbsolutePosition, area.AbsoluteSize
+if aSz.X > 100 and aSz.Y > 80 then
+laneBottomY = laneBottomY or (aPos.Y + aSz.Y * 0.84)
+for idx = 1, 5 do
+if not laneCenters[idx] then
+laneCenters[idx] = aPos.X + (aSz.X * ((idx - 0.5) / 5))
+end
+end
+end
+end
+local bestLane, bestTarget, bestScore = nil, nil, -9999
+for _, area in ipairs(areas) do
+local aPos, aSz = area.AbsolutePosition, area.AbsoluteSize
+local playTopY = aPos.Y + 8
+local playBotY = (laneBottomY or (aPos.Y + aSz.Y * 0.85)) - 4
+for _, obj in ipairs(area:GetDescendants()) do
+if obj:IsA("GuiObject") and obj.Visible and not containsDangerText(obj) then
+local nLow = string.lower(obj.Name)
+local sz = obj.AbsoluteSize
+local isBad = string.find(nLow, "boot", 1, true)
+or string.find(nLow, "lane", 1, true)
+or string.find(nLow, "trash", 1, true)
+or string.find(nLow, "bomb", 1, true)
+or string.find(nLow, "hazard", 1, true)
+or string.find(nLow, "bad", 1, true)
+if not isBad and sz.X >= 14 and sz.X <= 180 and sz.Y >= 14 and sz.Y <= 180 then
+local cx = obj.AbsolutePosition.X + (sz.X * 0.5)
+local cy = obj.AbsolutePosition.Y + (sz.Y * 0.5)
+if cy >= playTopY and cy <= playBotY then
+local matchedLane, minDist = nil, 56
+for idx = 1, 5 do
+local lx = laneCenters[idx]
+if lx and math.abs(cx - lx) < minDist then
+minDist = math.abs(cx - lx)
+matchedLane = idx
+end
+end
+if matchedLane then
+local progress = math.clamp((cy - playTopY) / math.max(1, (playBotY - playTopY)), 0, 1)
+local score = (progress * 45) - (minDist * 0.25)
+if score > bestScore then
+bestScore = score
+bestLane = matchedLane
+bestTarget = laneButtons[matchedLane] or obj
+end
+end
+end
+end
+end
+end
+end
+if bestLane then
+lastActionTime = tick()
+lastChaosLane = bestLane
+if laneButtons[bestLane] then
+fireGuiButton(laneButtons[bestLane])
+elseif bestTarget then
+fireGuiButton(bestTarget)
+else
+tapKey(laneKeys[bestLane])
+end
+end
+return true
 end
 
 local function runBaitMemoryMinigame(mg, allText)
-	local areas = getActiveMiniGameAreas(mg)
-	local choices = {}
-	local memKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four }
-	for _, area in ipairs(areas) do
-		for idx = 1, 4 do
-			local baitBtn = area:FindFirstChild("Bait" .. tostring(idx))
-			if baitBtn and baitBtn:IsA("GuiObject") and baitBtn.Visible then
-				local face = baitBtn:FindFirstChild("Face")
-				choices[idx] = { card = (face and face:IsA("GuiObject")) and face or baitBtn, target = baitBtn }
-			end
-		end
-		if next(choices) ~= nil then break end
-	end
-	local isMemory = (next(choices) ~= nil) or string.find(allText, "BAIT MEMORY", 1, true) ~= nil
-	if not isMemory then
-		lastMemTurnState = false
-		return false
-	end
-	local yourTurn = string.find(allText, "YOUR TURN", 1, true) ~= nil or string.find(allText, "REPEAT THE ORDER", 1, true) ~= nil
-	if yourTurn and not lastMemTurnState then
-		lastHighlightedKey = nil
-	elseif (not yourTurn) and lastMemTurnState then
-		sequenceQueue = {}
-		lastHighlightedKey = nil
-	end
-	lastMemTurnState = yourTurn
-	local litIdx = nil
-	for idx = 1, 4 do
-		local item = choices[idx]
-		local c = item and item.card
-		if c and c.Visible then
-			local bg = c.BackgroundColor3
-			if ((bg.R + bg.G + bg.B) / 3) > 0.85 or c.BackgroundTransparency < 0.05 then
-				litIdx = idx
-				break
-			end
-		end
-	end
-	if not yourTurn then
-		if litIdx and litIdx ~= lastHighlightedKey then
-			lastHighlightedKey = litIdx
-			table.insert(sequenceQueue, litIdx)
-		elseif not litIdx then
-			lastHighlightedKey = nil
-		end
-		return true
-	end
-	if tick() - lastActionTime >= 0.08 and #sequenceQueue > 0 then
-		local nextIdx = table.remove(sequenceQueue, 1)
-		local targetItem = choices[nextIdx]
-		if targetItem and targetItem.target then
-			lastActionTime = tick()
-			fireGuiButton(targetItem.target)
-			tapKey(memKeys[nextIdx])
-		end
-	end
-	return true
+local areas = getActiveMiniGameAreas(mg)
+local choices = {}
+local memKeys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four }
+for _, area in ipairs(areas) do
+for idx = 1, 4 do
+local baitBtn = area:FindFirstChild("Bait" .. tostring(idx))
+if baitBtn and baitBtn:IsA("GuiObject") and baitBtn.Visible then
+local face = baitBtn:FindFirstChild("Face")
+choices[idx] = { card = (face and face:IsA("GuiObject")) and face or baitBtn, target = baitBtn }
+end
+end
+if next(choices) ~= nil then break end
+end
+local isMemory = (next(choices) ~= nil) or string.find(allText, "BAIT MEMORY", 1, true) ~= nil
+if not isMemory then
+lastMemTurnState = false
+return false
+end
+local yourTurn = string.find(allText, "YOUR TURN", 1, true) ~= nil or string.find(allText, "REPEAT THE ORDER", 1, true) ~= nil
+if yourTurn and not lastMemTurnState then
+lastHighlightedKey = nil
+elseif (not yourTurn) and lastMemTurnState and #sequenceQueue == 0 then
+sequenceQueue = {}
+lastHighlightedKey = nil
+end
+lastMemTurnState = yourTurn
+local litIdx = nil
+for idx = 1, 4 do
+local item = choices[idx]
+local c = item and item.card
+if c and c.Visible then
+local bg = c.BackgroundColor3
+local brightness = (bg.R + bg.G + bg.B) / 3
+local isLit = brightness > 0.88 or (c:IsA("ImageLabel") and ((c.ImageColor3.R + c.ImageColor3.G + c.ImageColor3.B) / 3) > 0.92 and c.ImageTransparency < 0.15)
+if isLit then
+litIdx = idx
+break
+end
+end
+end
+if not yourTurn then
+if litIdx and litIdx ~= lastHighlightedKey then
+lastHighlightedKey = litIdx
+table.insert(sequenceQueue, litIdx)
+elseif not litIdx then
+lastHighlightedKey = nil
+end
+return true
+end
+if tick() - lastActionTime >= 0.14 and #sequenceQueue > 0 then
+local nextIdx = table.remove(sequenceQueue, 1)
+local targetItem = choices[nextIdx]
+if targetItem and targetItem.target then
+lastActionTime = tick()
+fireGuiButton(targetItem.target)
+tapKey(memKeys[nextIdx])
+end
+end
+return true
 end
 
 local function stepMiniGame()
