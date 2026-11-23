@@ -100,7 +100,8 @@ end
 end
 
 function UI.init(Config, hubTitle)
-Config.AutoFishCollect = false
+Config.AutoFishCollect = Config.AutoFishCollect or false
+Config.AutoMiniGame = Config.AutoMiniGame or false
 Config.MiniGameInstant = true
 
 local titleText = hubTitle or "TER HUB"
@@ -225,7 +226,6 @@ local mainStrokeGrad = addShimmerGradient(mainStroke, PALETTE.RedDark, PALETTE.R
 local gradBg = addShimmerGradient(main, Color3.fromRGB(48, 12, 20), Color3.fromRGB(14, 12, 16), Color3.fromRGB(38, 10, 16))
 gradBg.Rotation = 32
 
--- ชั้นอนิเมชันพื้นหลังโทนดำ-แดงแบบจัดเต็ม
 local bgFxLayer = Instance.new("Frame")
 bgFxLayer.Name = "BgAnimatedFx"
 bgFxLayer.Size = UDim2.fromScale(1, 1)
@@ -408,22 +408,26 @@ logoLbl.ZIndex = 5
 logoLbl.Parent = logoBox
 
 local hubTitleLbl = Instance.new("TextLabel")
-hubTitleLbl.Size = UDim2.fromOffset(340, 20)
+hubTitleLbl.Size = UDim2.fromOffset(420, 20)
 hubTitleLbl.Position = UDim2.fromOffset(60, 8)
 hubTitleLbl.BackgroundTransparency = 1
 hubTitleLbl.Text = titleText .. "  •  NET A FISH"
 hubTitleLbl.Font = Enum.Font.GothamBlack
 hubTitleLbl.TextSize = 14
-hubTitleLbl.TextColor3 = PALETTE.RedBright
+hubTitleLbl.TextColor3 = Color3.new(1, 1, 1)
 hubTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
 hubTitleLbl.ZIndex = 4
 hubTitleLbl.Parent = topbar
 
+local titleRgbGrad = Instance.new("UIGradient")
+titleRgbGrad.Name = "MapNameRgbGradient"
+titleRgbGrad.Parent = hubTitleLbl
+
 local hubSubLbl = Instance.new("TextLabel")
-hubSubLbl.Size = UDim2.fromOffset(340, 16)
+hubSubLbl.Size = UDim2.fromOffset(420, 16)
 hubSubLbl.Position = UDim2.fromOffset(60, 28)
 hubSubLbl.BackgroundTransparency = 1
-hubSubLbl.Text = "3D Red Edition  •  Instant MiniGame & Scan"
+hubSubLbl.Text = "3D Red Edition  •  All-in-One Hub"
 hubSubLbl.Font = Enum.Font.Gotham
 hubSubLbl.TextSize = 11
 hubSubLbl.TextColor3 = PALETTE.TextSecondary
@@ -701,9 +705,17 @@ tween(knob, 0.14, { Position = nextVal and UDim2.fromOffset(25, 3) or UDim2.from
 end)
 end
 
-addNavTab(1, "minigame", "มินิเกมและสแกน")
+addNavTab(1, "farm", "ฟาร์ม / เก็บปลา")
+addNavTab(2, "minigame", "มินิเกมและสแกน")
 
+local pFarm = createPage("farm")
 local pMini = createPage("minigame")
+
+addSwitch(pFarm, 1, "เก็บปลา / ฟาร์มอัตโนมัติ", "เรียกใช้งานระบบเก็บ/ฟาร์มตามโมดูลของแมพ", function()
+return Config.AutoFishCollect == true
+end, function(v)
+Config.AutoFishCollect = v
+end)
 
 addSwitch(pMini, 1, "เล่นมินิเกมอัตโนมัติ (ตอบสนองทันที)", "จับจังหวะและกดให้อัตโนมัติทันทีที่มินิเกมขึ้น", function()
 return Config.AutoMiniGame == true
@@ -781,6 +793,15 @@ miniStrokeGrad.Rotation = -rot
 
 fxClock += dt
 
+local h0 = (fxClock * 0.28) % 1
+titleRgbGrad.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0.00, Color3.fromHSV(h0, 0.9, 1)),
+ColorSequenceKeypoint.new(0.25, Color3.fromHSV((h0 + 0.16) % 1, 0.9, 1)),
+ColorSequenceKeypoint.new(0.50, Color3.fromHSV((h0 + 0.33) % 1, 0.9, 1)),
+ColorSequenceKeypoint.new(0.75, Color3.fromHSV((h0 + 0.50) % 1, 0.9, 1)),
+ColorSequenceKeypoint.new(1.00, Color3.fromHSV((h0 + 0.67) % 1, 0.9, 1)),
+})
+
 sweepX += dt * 0.52
 if sweepX > 1.28 then
 sweepX = -0.55
@@ -819,7 +840,7 @@ em.frame.BackgroundTransparency = math.clamp(em.baseTrans + pulse, 0.08, 0.78)
 end
 end)
 
-print("[UI] Mounted 3D Red Left-Menu -> Heavy Black-Red Animated FX")
+print("[UI] Mounted All-in-One UI (Farm + Instant MiniGame + Scan + RGB Title + Black-Red FX)")
 end
 
 return UI

@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
@@ -9,16 +10,10 @@ local started = false
 
 local lastActionTime = 0
 local lastAcceptTime = 0
-
--- State เฉพาะ REEL
 local lastNeedleX = nil
 local lastReelPressTime = 0
-
--- State เฉพาะ FISH CHAOS
 local lastChaosLane = nil
 local lastChaosLaneTime = 0
-
--- State เฉพาะ BAIT MEMORY
 local sequenceQueue = {}
 local lastHighlightedKey = nil
 local lastMemTurnState = false
@@ -143,8 +138,9 @@ pcall(function()
 local pos = guiObj.AbsolutePosition
 local sz = guiObj.AbsoluteSize
 if pos and sz and sz.X > 4 and sz.Y > 4 then
-local cx = pos.X + (sz.X * 0.5)
-local cy = pos.Y + (sz.Y * 0.5) + 36
+local inset = GuiService:GetGuiInset()
+local cx = pos.X + (sz.X * 0.5) + inset.X
+local cy = pos.Y + (sz.Y * 0.5) + inset.Y
 VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
 VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
 fired = true
@@ -209,6 +205,32 @@ and mg.Window.Body:FindFirstChild("Result")
 return (res and res:IsA("GuiObject") and res.Visible) == true
 end
 
+local function isInActiveGameplay(mg, allText)
+local areas = getActiveMiniGameAreas(mg)
+for _, area in ipairs(areas) do
+for _, d in ipairs(area:GetDescendants()) do
+if d:IsA("GuiObject") and d.Visible then
+local nLow = string.lower(d.Name)
+if string.find(nLow, "bait", 1, true)
+or string.find(nLow, "spot", 1, true)
+or string.find(nLow, "lane", 1, true)
+or string.find(nLow, "needle", 1, true)
+then
+return true
+end
+end
+end
+end
+if string.find(allText, "YOUR TURN", 1, true)
+or string.find(allText, "ถึงตาคุณ", 1, true)
+or string.find(allText, "SPACE OR CLICK", 1, true)
+or string.find(allText, "CLICK OR KEYS 1-5", 1, true)
+then
+return true
+end
+return false
+end
+
 local function tryClickStartButton(mg)
 if isResultScreenVisible(mg) then
 return false
@@ -218,7 +240,7 @@ return false
 end
 
 for _, obj in ipairs(mg:GetDescendants()) do
-if obj:IsA("GuiButton") and obj.Visible and obj.Active and obj.Name ~= "Backdrop" then
+if obj:IsA("GuiButton") and obj.Visible and obj.Name ~= "Backdrop" then
 local nLow = string.lower(obj.Name)
 local txt = ""
 if obj:IsA("TextButton") and (obj.Text or "") ~= "" then
@@ -255,7 +277,6 @@ end
 return false
 end
 
--- [GAME 1] REEL / ม้วนที่สมบูรณ์แบบ (เล็งแถบสีทอง PERFECT)
 local function runReelMinigame(mg, allText)
 local isReel = string.find(allText, "REEL", 1, true) ~= nil
 or string.find(allText, "ม้วนที่สมบูรณ์แบบ", 1, true) ~= nil
@@ -360,7 +381,6 @@ end
 return true
 end
 
--- [GAME 2] FISH CHAOS / ความโกลาหลของปลา (กดเลน 1-5 หลบบูต)
 local function runFishChaosMinigame(mg, allText)
 local isChaos = string.find(allText, "FISH CHAOS", 1, true) ~= nil
 or string.find(allText, "ความโกลาหลของปลา", 1, true) ~= nil
@@ -501,7 +521,6 @@ end
 return true
 end
 
--- [GAME 3] BAIT MEMORY / ความจำเหยื่อ (จำคิว Bait1-Bait4 และกดตามทันทีเมื่อถึงตาคุณ)
 local function runBaitMemoryMinigame(mg, allText)
 local areas = getActiveMiniGameAreas(mg)
 local choices = {}
@@ -657,6 +676,12 @@ end
 
 local allText = getCombinedVisibleText(mg)
 
+if not isInActiveGameplay(mg, allText) then
+if tryClickStartButton(mg) then
+return
+end
+end
+
 if runReelMinigame(mg, allText) then
 return
 end
@@ -705,7 +730,7 @@ task.wait(0.1)
 end
 end)
 
-print("[Net a Fish] โหลดระบบมินิเกมครบทั้ง 3 เกมเรียบร้อย")
+print("[Net a Fish] โหลดระบบ All-in-One ครบทุกหมวดและทั้ง 3 มินิเกมเรียบร้อย")
 end
 
 return GameModule
