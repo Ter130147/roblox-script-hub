@@ -717,9 +717,23 @@ lastHighlightedKey = nil
 end
 end)
 
+local function anyGranularFeatureActive(cfg)
+if not cfg then
+return false
+end
+return (cfg.AutoFishCollect == true)
+or (cfg.AutoCatch == true)
+or (cfg.AutoReelFull == true)
+or (cfg.AutoPadTp == true)
+or (cfg.AutoCollectMoney == true)
+or (cfg.AutoShootMegalodon == true)
+or (cfg.AutoShootBloop == true)
+or (cfg.AutoRebirth == true)
+end
+
 task.spawn(function()
 while started do
-if Config and Config.AutoFishCollect then
+if anyGranularFeatureActive(Config) then
 if Cat1Module and Cat1Module.step then
 pcall(Cat1Module.step, Config)
 end

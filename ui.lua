@@ -101,6 +101,14 @@ end
 
 function UI.init(Config, hubTitle)
 Config.AutoFishCollect = Config.AutoFishCollect or false
+Config.AutoCatch = Config.AutoCatch or false
+Config.AutoReelFull = Config.AutoReelFull or false
+Config.CollectIntervalSec = Config.CollectIntervalSec or 44
+Config.AutoPadTp = Config.AutoPadTp or false
+Config.AutoCollectMoney = Config.AutoCollectMoney or false
+Config.AutoShootMegalodon = Config.AutoShootMegalodon or false
+Config.AutoShootBloop = Config.AutoShootBloop or false
+Config.AutoRebirth = Config.AutoRebirth or false
 Config.AutoMiniGame = Config.AutoMiniGame or false
 Config.MiniGameInstant = true
 
@@ -427,7 +435,7 @@ local hubSubLbl = Instance.new("TextLabel")
 hubSubLbl.Size = UDim2.fromOffset(420, 16)
 hubSubLbl.Position = UDim2.fromOffset(60, 28)
 hubSubLbl.BackgroundTransparency = 1
-hubSubLbl.Text = "3D Red Edition  •  All-in-One Hub"
+hubSubLbl.Text = "3D Red Edition  •  Granular Module Controls"
 hubSubLbl.Font = Enum.Font.Gotham
 hubSubLbl.TextSize = 11
 hubSubLbl.TextColor3 = PALETTE.TextSecondary
@@ -488,6 +496,13 @@ closeBtn.MouseButton1Click:Connect(function()
 if Config then
 Config.AutoMiniGame = false
 Config.AutoFishCollect = false
+Config.AutoCatch = false
+Config.AutoReelFull = false
+Config.AutoPadTp = false
+Config.AutoCollectMoney = false
+Config.AutoShootMegalodon = false
+Config.AutoShootBloop = false
+Config.AutoRebirth = false
 Config.ScanNow = false
 end
 screenGui:Destroy()
@@ -606,6 +621,20 @@ selectPage(pageId)
 end)
 end
 
+local function addSectionHeader(parentScroll, order, titleStr)
+local hdr = Instance.new("TextLabel")
+hdr.LayoutOrder = order
+hdr.Size = UDim2.new(1, 0, 0, 20)
+hdr.BackgroundTransparency = 1
+hdr.Text = titleStr
+hdr.Font = Enum.Font.GothamBlack
+hdr.TextSize = 11
+hdr.TextColor3 = PALETTE.RedBright
+hdr.TextXAlignment = Enum.TextXAlignment.Left
+hdr.ZIndex = 6
+hdr.Parent = parentScroll
+end
+
 local function make3DRow(parentScroll, order, height)
 local wrap = Instance.new("Frame")
 wrap.LayoutOrder = order
@@ -637,11 +666,11 @@ return card
 end
 
 local function addSwitch(parentScroll, order, titleStr, subStr, getState, setState)
-local row = make3DRow(parentScroll, order, 52)
+local row = make3DRow(parentScroll, order, 50)
 
 local lbl = Instance.new("TextLabel")
-lbl.Size = UDim2.new(1, -105, 0, 18)
-lbl.Position = UDim2.fromOffset(12, 7)
+lbl.Size = UDim2.new(1, -105, 0, 17)
+lbl.Position = UDim2.fromOffset(12, 6)
 lbl.BackgroundTransparency = 1
 lbl.Text = titleStr
 lbl.Font = Enum.Font.GothamBold
@@ -652,8 +681,8 @@ lbl.ZIndex = 7
 lbl.Parent = row
 
 local sub = Instance.new("TextLabel")
-sub.Size = UDim2.new(1, -105, 0, 15)
-sub.Position = UDim2.fromOffset(12, 27)
+sub.Size = UDim2.new(1, -105, 0, 14)
+sub.Position = UDim2.fromOffset(12, 26)
 sub.BackgroundTransparency = 1
 sub.Text = subStr
 sub.Font = Enum.Font.Gotham
@@ -705,16 +734,154 @@ tween(knob, 0.14, { Position = nextVal and UDim2.fromOffset(25, 3) or UDim2.from
 end)
 end
 
-addNavTab(1, "farm", "ฟาร์ม / เก็บปลา")
+local function addSlider(parentScroll, order, titleStr, minVal, maxVal, suffixStr, getVal, setVal)
+local row = make3DRow(parentScroll, order, 54)
+
+local lbl = Instance.new("TextLabel")
+lbl.Size = UDim2.new(1, -90, 0, 17)
+lbl.Position = UDim2.fromOffset(12, 6)
+lbl.BackgroundTransparency = 1
+lbl.Text = titleStr
+lbl.Font = Enum.Font.GothamBold
+lbl.TextSize = 12
+lbl.TextColor3 = PALETTE.TextPrimary
+lbl.TextXAlignment = Enum.TextXAlignment.Left
+lbl.ZIndex = 7
+lbl.Parent = row
+
+local valLbl = Instance.new("TextLabel")
+valLbl.Size = UDim2.fromOffset(72, 17)
+valLbl.Position = UDim2.new(1, -84, 0, 6)
+valLbl.BackgroundTransparency = 1
+valLbl.Text = tostring(getVal()) .. (suffixStr or "")
+valLbl.Font = Enum.Font.GothamBlack
+valLbl.TextSize = 11
+valLbl.TextColor3 = PALETTE.RedBright
+valLbl.TextXAlignment = Enum.TextXAlignment.Right
+valLbl.ZIndex = 7
+valLbl.Parent = row
+
+local track = Instance.new("Frame")
+track.Size = UDim2.new(1, -24, 0, 6)
+track.Position = UDim2.fromOffset(12, 34)
+track.BackgroundColor3 = PALETTE.OffTrack
+track.BorderSizePixel = 0
+track.ZIndex = 7
+track.Parent = row
+round(track, 3)
+
+local fill = Instance.new("Frame")
+fill.Size = UDim2.fromScale(0, 1)
+fill.BackgroundColor3 = PALETTE.Red
+fill.BorderSizePixel = 0
+fill.ZIndex = 8
+fill.Parent = track
+round(fill, 3)
+
+local thumb = Instance.new("TextButton")
+thumb.Size = UDim2.fromOffset(14, 14)
+thumb.AnchorPoint = Vector2.new(0.5, 0.5)
+thumb.Position = UDim2.new(0, 0, 0.5, 0)
+thumb.BackgroundColor3 = Color3.new(1, 1, 1)
+thumb.Text = ""
+thumb.AutoButtonColor = false
+thumb.ZIndex = 9
+thumb.Parent = track
+round(thumb, 7)
+stroke(thumb, PALETTE.RedBright, 1.5, 0)
+
+local function applyRatio(r)
+local clamped = math.clamp(r, 0, 1)
+local num = math.floor((minVal + (maxVal - minVal) * clamped) + 0.5)
+setVal(num)
+local actualRatio = (num - minVal) / math.max(1, (maxVal - minVal))
+fill.Size = UDim2.fromScale(actualRatio, 1)
+thumb.Position = UDim2.new(actualRatio, 0, 0.5, 0)
+valLbl.Text = tostring(num) .. (suffixStr or "")
+end
+
+applyRatio((getVal() - minVal) / math.max(1, (maxVal - minVal)))
+
+local sliding = false
+local function updateFromInput(inp)
+local absX = track.AbsolutePosition.X
+local absW = math.max(1, track.AbsoluteSize.X)
+applyRatio((inp.Position.X - absX) / absW)
+end
+
+track.InputBegan:Connect(function(inp)
+if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+sliding = true
+updateFromInput(inp)
+end
+end)
+thumb.InputBegan:Connect(function(inp)
+if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+sliding = true
+end
+end)
+UserInputService.InputChanged:Connect(function(inp)
+if sliding and inp.UserInputType == Enum.UserInputType.MouseMovement then
+updateFromInput(inp)
+end
+end)
+UserInputService.InputEnded:Connect(function(inp)
+if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+sliding = false
+end
+end)
+end
+
+addNavTab(1, "fishing", "ตกปลา / ฟาร์ม")
 addNavTab(2, "minigame", "มินิเกมและสแกน")
 
-local pFarm = createPage("farm")
+local pFish = createPage("fishing")
 local pMini = createPage("minigame")
 
-addSwitch(pFarm, 1, "เก็บปลา / ฟาร์มอัตโนมัติ", "เรียกใช้งานระบบเก็บ/ฟาร์มตามโมดูลของแมพ", function()
-return Config.AutoFishCollect == true
+addSectionHeader(pFish, 1, "MAIN (ตกปลา)")
+addSwitch(pFish, 2, "จับปลาอัตโนมัติ", "เปิดแยกเฉพาะระบบจับปลาอัตโนมัติ", function()
+return Config.AutoCatch == true
 end, function(v)
-Config.AutoFishCollect = v
+Config.AutoCatch = v
+end)
+addSwitch(pFish, 3, "ดึงอวนเมื่อเต็มอัตโนมัติ", "เปิดแยกเฉพาะระบบดึงอวนเมื่อเต็ม", function()
+return Config.AutoReelFull == true
+end, function(v)
+Config.AutoReelFull = v
+end)
+
+addSectionHeader(pFish, 4, "อื่นๆ (เก็บของ / แท่น / เงิน)")
+addSlider(pFish, 5, "เก็บทุก (วิ)", 5, 120, "s", function()
+return Config.CollectIntervalSec or 44
+end, function(v)
+Config.CollectIntervalSec = v
+end)
+addSwitch(pFish, 6, "วาร์ปไปเหยียบแท่น", "เปิดแยกเฉพาะการวาร์ปไปเหยียบแท่น", function()
+return Config.AutoPadTp == true
+end, function(v)
+Config.AutoPadTp = v
+end)
+addSwitch(pFish, 7, "เก็บเงินอัตโนมัติ", "เปิดแยกเฉพาะการเก็บเงินอัตโนมัติ", function()
+return Config.AutoCollectMoney == true
+end, function(v)
+Config.AutoCollectMoney = v
+end)
+
+addSectionHeader(pFish, 8, "อีเวนต์ & รีเบิร์ธ")
+addSwitch(pFish, 9, "ยิงเมกาโลดอนอัตโนมัติ", "เปิดแยกเฉพาะตอนเมกาโลดอนโผล่", function()
+return Config.AutoShootMegalodon == true
+end, function(v)
+Config.AutoShootMegalodon = v
+end)
+addSwitch(pFish, 10, "ยิง Bloop อัตโนมัติ", "เปิดแยกเฉพาะตอน Bloop โผล่", function()
+return Config.AutoShootBloop == true
+end, function(v)
+Config.AutoShootBloop = v
+end)
+addSwitch(pFish, 11, "รีเบิร์ธอัตโนมัติ", "เปิดแยกเฉพาะระบบรีเบิร์ธอัตโนมัติ", function()
+return Config.AutoRebirth == true
+end, function(v)
+Config.AutoRebirth = v
 end)
 
 addSwitch(pMini, 1, "เล่นมินิเกมอัตโนมัติ (ตอบสนองทันที)", "จับจังหวะและกดให้อัตโนมัติทันทีที่มินิเกมขึ้น", function()
@@ -772,7 +939,7 @@ end
 end)
 end)
 
-selectPage("minigame")
+selectPage("fishing")
 
 local rot = 0
 local sweepX = -0.55
@@ -840,7 +1007,7 @@ em.frame.BackgroundTransparency = math.clamp(em.baseTrans + pulse, 0.08, 0.78)
 end
 end)
 
-print("[UI] Mounted All-in-One UI (Farm + Instant MiniGame + Scan + RGB Title + Black-Red FX)")
+print("[UI] Mounted Granular Controls UI")
 end
 
 return UI
