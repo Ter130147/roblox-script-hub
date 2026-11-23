@@ -11,6 +11,10 @@ local sequenceQueue = {}
 local lastHighlightedKey = nil
 local lastActionTime = 0
 local lastAcceptTime = 0
+local lastChaosLane = nil
+local lastChaosLaneTime = 0
+local lastMemTurnState = false
+local lastNeedleX = nil
 
 local Cat1Module = nil
 pcall(function()
@@ -230,8 +234,34 @@ end
 return table.concat(titles, " | ")
 end
 
+local function isInActiveGameplay(mg, allText)
+local areas = getActiveMiniGameAreas(mg)
+for _, area in ipairs(areas) do
+for _, d in ipairs(area:GetDescendants()) do
+if d:IsA("GuiObject") and d.Visible then
+local nLow = string.lower(d.Name)
+if string.find(nLow, "bait", 1, true)
+or string.find(nLow, "spot", 1, true)
+or string.find(nLow, "lane", 1, true)
+or string.find(nLow, "needle", 1, true)
+then
+return true
+end
+end
+end
+end
+if string.find(allText, "YOUR TURN", 1, true)
+or string.find(allText, "ถึงตาคุณ", 1, true)
+or string.find(allText, "SPACE OR CLICK", 1, true)
+or string.find(allText, "CLICK OR KEYS 1-5", 1, true)
+then
+return true
+end
+return false
+end
+
 local function tryClickPlayInMiniGame(mg)
-if tick() - lastAcceptTime < 0.6 then
+if tick() - lastAcceptTime < 0.65 then
 return false
 end
 
@@ -265,7 +295,6 @@ local target = obj:IsA("GuiButton") and obj
 or obj:FindFirstAncestorWhichIsA("GuiButton")
 if target and target:IsA("GuiButton") and target.Name ~= "Backdrop" and not containsDangerText(target.Parent) then
 lastAcceptTime = tick()
-print("[MiniGame] กดปุ่มเริ่มรอบ:", target.Name, "|", txt)
 instantClickMiniGame(target)
 return true
 end
@@ -275,9 +304,7 @@ end
 return false
 end
 
--- [1] REEL! / ม้วนที่สมบูรณ์แบบ เล็งเฉพาะโซนสีทอง (PERFECT) พร้อมชดเชยความเร็วเข็ม
-local lastNeedleX = nil
-
+-- [1] REEL! / ม้วนที่สมบูรณ์แบบ
 local function tryPlayReelGame(mg, allText)
 local areas = getActiveMiniGameAreas(mg)
 local isReelMode = string.find(allText, "REEL", 1, true) ~= nil
@@ -311,7 +338,6 @@ reelBtn = btn
 end
 end
 
--- เข็มสีขาวแนวตั้ง (กว้างแคบ สูงกว่าความกว้าง)
 if obj:IsA("Frame") or obj:IsA("ImageLabel") then
 local c = obj.BackgroundColor3
 local sz = obj.AbsoluteSize
@@ -328,7 +354,6 @@ if isWhiteNeedle or isNamedNeedle then
 needle = obj
 end
 
--- แถบสีทอง (PERFECT) อยู่ด้านในโซนเขียว
 if sz.X >= 4 and sz.X <= 180 and sz.Y >= 14 and obj.BackgroundTransparency < 0.4 then
 local isGoldColor = (c.R > 0.72 and c.G > 0.55 and c.B < 0.35)
 local isGoldName = string.find(nLower, "gold", 1, true) ~= nil
@@ -349,7 +374,6 @@ end
 end
 end
 
--- ค้นหาปุ่ม REEL! สีเขียวด้านล่าง Body ด้วย (เผื่ออยู่นอก Area)
 if not reelBtn then
 for _, obj in ipairs(mg:GetDescendants()) do
 if obj:IsA("GuiButton") and obj.Visible and not containsDangerText(obj) then
@@ -378,8 +402,6 @@ if needle then
 local nCenter = needle.AbsolutePosition.X + (needle.AbsoluteSize.X * 0.5)
 local velX = lastNeedleX and (nCenter - lastNeedleX) or 0
 lastNeedleX = nCenter
-
--- คาดการณ์ตำแหน่งเข็มล่วงหน้า ~0.6 เฟรม เพื่อชดเชยจังหวะส่งคำสั่งคลิก
 local predictedCenter = nCenter + (velX * 0.6)
 
 local targetMin, targetMax
@@ -387,7 +409,6 @@ if goldZone then
 targetMin = goldZone.AbsolutePosition.X + 1
 targetMax = goldZone.AbsolutePosition.X + goldZone.AbsoluteSize.X - 1
 elseif greenZone then
--- ถ้าหาแถบสีทองไม่เจอ ให้บีบเป้าเหลือเฉพาะ 28% ตรงกลางของแถบเขียว
 local gLeft = greenZone.AbsolutePosition.X
 local gWidth = greenZone.AbsoluteSize.X
 targetMin = gLeft + (gWidth * 0.36)
@@ -408,11 +429,7 @@ end
 return true
 end
 
-local lastChaosLane = nil
-local lastChaosLaneTime = 0
-local lastMemTurnState = false
-
--- [2] Fish Chaos จับเลน 1-5 ทันทีเมื่อมีปลาโผล่ และหลบเฉพาะบูตสีน้ำตาลเข้ม
+-- [2] Fish Chaos / ความโกลาหลของปลา
 local function tryPlayFishChaosGame(mg, allText)
 local isChaos = string.find(allText, "FISH CHAOS", 1, true) ~= nil
 or string.find(allText, "ความโกลาหลของปลา", 1, true) ~= nil
@@ -507,7 +524,6 @@ col = obj.ImageColor3
 end
 end
 
--- กันเฉพาะโทนสีน้ำตาลเข้มจัดของรองเท้าบูต ไม่บล็อกปลาสีส้ม/ชมพู
 local isDarkBrownBoot = (col.R > 0.42 and col.G < 0.34 and col.B < 0.18 and col.R > col.G * 1.45)
 
 if not isDarkBrownBoot then
@@ -556,7 +572,7 @@ end
 return true
 end
 
--- [3] Bait Memory จับไฮไลต์ให้ครอบคลุมขึ้นและล้างคิวเมื่อเริ่มรอบใหม่
+-- [3] Bait Memory / ความจำเหยื่อ
 local function tryPlayMemoryBaitGame(mg, allText)
 local areas = getActiveMiniGameAreas(mg)
 local choices = {}
@@ -670,7 +686,6 @@ if not yourTurn then
 if litIdx and litIdx ~= lastHighlightedKey then
 lastHighlightedKey = litIdx
 table.insert(sequenceQueue, litIdx)
-print("[MemoryBait] จำลำดับ:", litIdx, "(" .. orderNames[litIdx] .. ") | คิวรวม:", #sequenceQueue)
 elseif not litIdx then
 lastHighlightedKey = nil
 end
@@ -686,7 +701,6 @@ local nextIdx = table.remove(sequenceQueue, 1)
 local targetItem = choices[nextIdx]
 if targetItem and targetItem.target then
 lastActionTime = tick()
-print("[MemoryBait] ถึงตาคุณ -> กดทันที:", nextIdx, "(" .. orderNames[nextIdx] .. ")")
 instantClickMiniGame(targetItem.target)
 instantPressKey(memKeys[nextIdx])
 end
@@ -700,15 +714,19 @@ local mg = getMiniGameGui()
 if not mg then
 sequenceQueue = {}
 lastHighlightedKey = nil
-return
-end
-
--- กดปุ่ม PlayButton / เริ่มเล่น ก่อนเสมอสำหรับทุกมินิเกม
-if tryClickPlayInMiniGame(mg) then
+lastNeedleX = nil
+lastChaosLane = nil
+lastMemTurnState = false
 return
 end
 
 local allText = getHeaderTitle(mg)
+
+if not isInActiveGameplay(mg, allText) then
+if tryClickPlayInMiniGame(mg) then
+return
+end
+end
 
 if tryPlayReelGame(mg, allText) then
 return
@@ -721,6 +739,8 @@ end
 if tryPlayMemoryBaitGame(mg, allText) then
 return
 end
+
+tryClickPlayInMiniGame(mg)
 end
 
 function GameModule.init(Config, Utils)
@@ -756,7 +776,7 @@ task.wait(0.1)
 end
 end)
 
-print("[Net a Fish] โหลดระบบมินิเกมโหมดตอบสนองทันที (Zero-Delay Heartbeat + Thai/EN) เรียบร้อย")
+print("[Net a Fish] โหลดระบบมินิเกมครบทั้ง 3 เกม (All-in-One Instant Mode) เรียบร้อย")
 end
 
 return GameModule
