@@ -7,14 +7,21 @@ local LocalPlayer = Players.LocalPlayer
 local GameModule = {}
 local started = false
 
-local sequenceQueue = {}
-local lastHighlightedKey = nil
 local lastActionTime = 0
 local lastAcceptTime = 0
+
+-- State เฉพาะ REEL
+local lastNeedleX = nil
+local lastReelPressTime = 0
+
+-- State เฉพาะ FISH CHAOS
 local lastChaosLane = nil
 local lastChaosLaneTime = 0
+
+-- State เฉพาะ BAIT MEMORY
+local sequenceQueue = {}
+local lastHighlightedKey = nil
 local lastMemTurnState = false
-local lastNeedleX = nil
 
 local Cat1Module = nil
 pcall(function()
@@ -58,7 +65,6 @@ end
 
 local mg = pg:FindFirstChild("MiniGameUI")
 if mg and mg:IsA("ScreenGui") and mg.Enabled then
-print("  --- [MiniGameUI Visible GuiButtons] ---")
 for _, d in ipairs(mg:GetDescendants()) do
 if d:IsA("GuiButton") and d.Visible then
 local txts = {}
@@ -78,44 +84,6 @@ table.concat(txts, " / ")
 ))
 end
 end
-
-print("  --- [MiniGameUI Visible Area / Spot / Game Elements] ---")
-local area = mg:FindFirstChild("Window")
-and mg.Window:FindFirstChild("Body")
-and mg.Window.Body:FindFirstChild("Area")
-for _, d in ipairs(mg:GetDescendants()) do
-if d:IsA("GuiObject") and d.Visible then
-local nLow = string.lower(d.Name)
-local pLow = d.Parent and string.lower(d.Parent.Name) or ""
-local isInteresting = (area and d:IsDescendantOf(area))
-or string.find(nLow, "spot", 1, true)
-or string.find(pLow, "spot", 1, true)
-or string.find(nLow, "bait", 1, true)
-or string.find(nLow, "lane", 1, true)
-or string.find(nLow, "needle", 1, true)
-or string.find(nLow, "zone", 1, true)
-or string.find(nLow, "gold", 1, true)
-or string.find(nLow, "reel", 1, true)
-if isInteresting then
-local c = d.BackgroundColor3
-local txt = (d:IsA("TextLabel") or d:IsA("TextButton")) and string.gsub(tostring(d.Text or ""), "[\r\n]+", " ") or ""
-print(string.format("    * %s (%s) | T:%.2f | BG:[%d,%d,%d] | Pos:(%d,%d) | Sz:(%d,%d) | Txt:'%s' | %s",
-d.Name, d.ClassName, d.BackgroundTransparency,
-math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255),
-math.floor(d.AbsolutePosition.X), math.floor(d.AbsolutePosition.Y),
-math.floor(d.AbsoluteSize.X), math.floor(d.AbsoluteSize.Y),
-txt, d:GetFullName()
-))
-end
-end
-end
-end
-end
-
-print("[DeepScan] 3. WORKSPACE TOP-LEVEL & CHILD COUNTS")
-for _, obj in ipairs(workspace:GetChildren()) do
-if obj:IsA("Folder") or obj:IsA("Model") then
-print(string.format("  - %s (%s) | Descendants: %d", obj.Name, obj.ClassName, #obj:GetDescendants()))
 end
 end
 print("==========================================================")
@@ -143,7 +111,7 @@ end
 return false
 end
 
-local function instantClickMiniGame(guiObj)
+local function fireGuiButton(guiObj)
 if not guiObj or not guiObj.Visible then
 return false
 end
@@ -186,7 +154,7 @@ end)
 return fired
 end
 
-local function instantPressKey(keyCode)
+local function tapKey(keyCode)
 if not keyCode then
 return
 end
@@ -221,96 +189,84 @@ end
 return areas
 end
 
-local function getHeaderTitle(mg)
-local titles = {}
+local function getCombinedVisibleText(mg)
+local list = {}
 for _, obj in ipairs(mg:GetDescendants()) do
 if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Visible then
 local t = string.upper(obj.Text or "")
 if t ~= "" then
-table.insert(titles, t)
+table.insert(list, t)
 end
 end
 end
-return table.concat(titles, " | ")
-end
-
-local function isInActiveGameplay(mg, allText)
-local areas = getActiveMiniGameAreas(mg)
-for _, area in ipairs(areas) do
-for _, d in ipairs(area:GetDescendants()) do
-if d:IsA("GuiObject") and d.Visible then
-local nLow = string.lower(d.Name)
-if string.find(nLow, "bait", 1, true)
-or string.find(nLow, "spot", 1, true)
-or string.find(nLow, "lane", 1, true)
-or string.find(nLow, "needle", 1, true)
-then
-return true
-end
-end
-end
-end
-if string.find(allText, "YOUR TURN", 1, true)
-or string.find(allText, "ถึงตาคุณ", 1, true)
-or string.find(allText, "SPACE OR CLICK", 1, true)
-or string.find(allText, "CLICK OR KEYS 1-5", 1, true)
-then
-return true
-end
-return false
+return table.concat(list, " | ")
 end
 
-local function tryClickPlayInMiniGame(mg)
-if tick() - lastAcceptTime < 0.65 then
-return false
-end
-
-local resultFrame = mg:FindFirstChild("Window")
+local function isResultScreenVisible(mg)
+local res = mg:FindFirstChild("Window")
 and mg.Window:FindFirstChild("Body")
 and mg.Window.Body:FindFirstChild("Result")
-if resultFrame and resultFrame:IsA("GuiObject") and resultFrame.Visible then
+return (res and res:IsA("GuiObject") and res.Visible) == true
+end
+
+local function tryClickStartButton(mg)
+if isResultScreenVisible(mg) then
+return false
+end
+if tick() - lastAcceptTime < 0.7 then
 return false
 end
 
 for _, obj in ipairs(mg:GetDescendants()) do
-if obj:IsA("GuiObject") and obj.Visible then
-local nLower = string.lower(obj.Name)
+if obj:IsA("GuiButton") and obj.Visible and obj.Active and obj.Name ~= "Backdrop" then
+local nLow = string.lower(obj.Name)
 local txt = ""
-if obj:IsA("TextButton") or obj:IsA("TextLabel") then
-txt = obj.Text or ""
+if obj:IsA("TextButton") and (obj.Text or "") ~= "" then
+txt = obj.Text
+else
+for _, ch in ipairs(obj:GetDescendants()) do
+if ch:IsA("TextLabel") and ch.Visible and (ch.Text or "") ~= "" then
+txt = ch.Text
+break
+end
+end
 end
 local low = string.lower(txt)
-local isBannerText = string.find(low, "play for a medal", 1, true) ~= nil
+local isBanner = string.find(low, "play for a medal", 1, true) ~= nil
 or string.find(low, "the better you do", 1, true) ~= nil
 
-local isPlayBtn = (not isBannerText) and (
-string.find(nLower, "playbutton", 1, true) ~= nil
+local isStart = (not isBanner) and (
+string.find(nLow, "play", 1, true) ~= nil
+or string.find(nLow, "start", 1, true) ~= nil
 or (string.find(low, "play", 1, true) ~= nil and #txt <= 32)
 or (string.find(txt, "เล่น", 1, true) ~= nil and #txt <= 32)
 or (string.find(txt, "เริ่ม", 1, true) ~= nil and #txt <= 32)
 )
 
-if isPlayBtn then
-local target = obj:IsA("GuiButton") and obj
-or obj:FindFirstAncestorWhichIsA("GuiButton")
-if target and target:IsA("GuiButton") and target.Name ~= "Backdrop" and not containsDangerText(target.Parent) then
+if isStart and not containsDangerText(obj.Parent) then
 lastAcceptTime = tick()
-instantClickMiniGame(target)
+print("[MiniGame] กดเริ่มรอบ:", obj.Name, "|", txt)
+fireGuiButton(obj)
 return true
 end
 end
 end
-end
+
 return false
 end
 
--- [1] REEL! / ม้วนที่สมบูรณ์แบบ
-local function tryPlayReelGame(mg, allText)
-local areas = getActiveMiniGameAreas(mg)
-local isReelMode = string.find(allText, "REEL", 1, true) ~= nil
+-- [GAME 1] REEL / ม้วนที่สมบูรณ์แบบ (เล็งแถบสีทอง PERFECT)
+local function runReelMinigame(mg, allText)
+local isReel = string.find(allText, "REEL", 1, true) ~= nil
 or string.find(allText, "ม้วนที่สมบูรณ์แบบ", 1, true) ~= nil
 or string.find(allText, "GOLD IS PERFECT", 1, true) ~= nil
 
+if not isReel then
+lastNeedleX = nil
+return false
+end
+
+local areas = getActiveMiniGameAreas(mg)
 local reelBtn = nil
 local greenZone = nil
 local goldZone = nil
@@ -319,51 +275,32 @@ local needle = nil
 for _, area in ipairs(areas) do
 for _, obj in ipairs(area:GetDescendants()) do
 if obj:IsA("GuiObject") and obj.Visible then
-local nLower = string.lower(obj.Name)
-local txtUpper = string.upper((obj:IsA("TextLabel") or obj:IsA("TextButton")) and (obj.Text or "") or "")
-
-if obj:IsA("GuiButton") and (
-string.find(nLower, "reel", 1, true)
-or string.find(nLower, "tap", 1, true)
-or string.find(nLower, "btn", 1, true)
-or string.find(nLower, "action", 1, true)
-) then
-if not containsDangerText(obj) then
-reelBtn = obj
-end
-elseif (obj:IsA("TextLabel") or obj:IsA("TextButton")) and string.find(txtUpper, "REEL", 1, true) then
-local btn = obj:IsA("GuiButton") and obj or obj:FindFirstAncestorWhichIsA("GuiButton")
-if btn and not containsDangerText(btn) then
-reelBtn = btn
-end
-end
-
-if obj:IsA("Frame") or obj:IsA("ImageLabel") then
-local c = obj.BackgroundColor3
+local nLow = string.lower(obj.Name)
 local sz = obj.AbsoluteSize
-local isWhiteNeedle = (c.R > 0.85 and c.G > 0.85 and c.B > 0.85 and obj.BackgroundTransparency < 0.3 and sz.X >= 3 and sz.X <= 22 and sz.Y >= 24)
+local c = obj.BackgroundColor3
+
+if (obj:IsA("Frame") or obj:IsA("ImageLabel")) and obj.BackgroundTransparency < 0.35 then
+local isWhiteNeedle = (c.R > 0.85 and c.G > 0.85 and c.B > 0.85 and sz.X >= 3 and sz.X <= 24 and sz.Y >= 20)
 local isNamedNeedle = (
-string.find(nLower, "needle", 1, true)
-or string.find(nLower, "pointer", 1, true)
-or string.find(nLower, "marker", 1, true)
-or string.find(nLower, "cursor", 1, true)
-or string.find(nLower, "indicator", 1, true)
-) and (sz.X <= 28 and sz.Y >= 16)
+string.find(nLow, "needle", 1, true)
+or string.find(nLow, "pointer", 1, true)
+or string.find(nLow, "marker", 1, true)
+or string.find(nLow, "cursor", 1, true)
+or string.find(nLow, "indicator", 1, true)
+) and (sz.X <= 30 and sz.Y >= 14)
 
 if isWhiteNeedle or isNamedNeedle then
 needle = obj
 end
 
-if sz.X >= 4 and sz.X <= 180 and sz.Y >= 14 and obj.BackgroundTransparency < 0.4 then
-local isGoldColor = (c.R > 0.72 and c.G > 0.55 and c.B < 0.35)
-local isGoldName = string.find(nLower, "gold", 1, true) ~= nil
-or string.find(nLower, "perfect", 1, true) ~= nil
-or string.find(nLower, "sweet", 1, true) ~= nil
-or string.find(nLower, "center", 1, true) ~= nil
-
-if isGoldColor or isGoldName then
+if sz.X >= 4 and sz.X <= 180 and sz.Y >= 14 then
+local isGold = (c.R > 0.72 and c.G > 0.55 and c.B < 0.35)
+or string.find(nLow, "gold", 1, true) ~= nil
+or string.find(nLow, "perfect", 1, true) ~= nil
+or string.find(nLow, "sweet", 1, true) ~= nil
+if isGold then
 goldZone = obj
-elseif (c.G > 0.52 and c.R < 0.48) or string.find(nLower, "green", 1, true) or string.find(nLower, "zone", 1, true) then
+elseif (c.G > 0.52 and c.R < 0.48) or string.find(nLow, "green", 1, true) or string.find(nLow, "zone", 1, true) then
 if sz.X <= 360 then
 greenZone = obj
 end
@@ -374,11 +311,10 @@ end
 end
 end
 
-if not reelBtn then
 for _, obj in ipairs(mg:GetDescendants()) do
 if obj:IsA("GuiButton") and obj.Visible and not containsDangerText(obj) then
-local nLower = string.lower(obj.Name)
-if string.find(nLower, "reel", 1, true) then
+local nLow = string.lower(obj.Name)
+if string.find(nLow, "reel", 1, true) then
 reelBtn = obj
 break
 end
@@ -391,37 +327,32 @@ end
 if reelBtn then break end
 end
 end
-end
 
-if not isReelMode and not (needle and (goldZone or greenZone)) then
-lastNeedleX = nil
-return false
-end
-
-if needle then
+if needle and (tick() - lastReelPressTime >= 0.16) then
 local nCenter = needle.AbsolutePosition.X + (needle.AbsoluteSize.X * 0.5)
 local velX = lastNeedleX and (nCenter - lastNeedleX) or 0
 lastNeedleX = nCenter
-local predictedCenter = nCenter + (velX * 0.6)
+local predCenter = nCenter + (velX * 0.55)
 
-local targetMin, targetMax
+local zMin, zMax
 if goldZone then
-targetMin = goldZone.AbsolutePosition.X + 1
-targetMax = goldZone.AbsolutePosition.X + goldZone.AbsoluteSize.X - 1
+zMin = goldZone.AbsolutePosition.X + 1
+zMax = goldZone.AbsolutePosition.X + goldZone.AbsoluteSize.X - 1
 elseif greenZone then
 local gLeft = greenZone.AbsolutePosition.X
 local gWidth = greenZone.AbsoluteSize.X
-targetMin = gLeft + (gWidth * 0.36)
-targetMax = gLeft + (gWidth * 0.64)
+zMin = gLeft + (gWidth * 0.36)
+zMax = gLeft + (gWidth * 0.64)
 end
 
-if targetMin and targetMax and (tick() - lastActionTime >= 0.16) then
-if (nCenter >= targetMin and nCenter <= targetMax) or (predictedCenter >= targetMin and predictedCenter <= targetMax) then
+if zMin and zMax then
+if (nCenter >= zMin and nCenter <= zMax) or (predCenter >= zMin and predCenter <= zMax) then
+lastReelPressTime = tick()
 lastActionTime = tick()
 if reelBtn then
-instantClickMiniGame(reelBtn)
+fireGuiButton(reelBtn)
 end
-instantPressKey(Enum.KeyCode.Space)
+tapKey(Enum.KeyCode.Space)
 end
 end
 end
@@ -429,8 +360,8 @@ end
 return true
 end
 
--- [2] Fish Chaos / ความโกลาหลของปลา
-local function tryPlayFishChaosGame(mg, allText)
+-- [GAME 2] FISH CHAOS / ความโกลาหลของปลา (กดเลน 1-5 หลบบูต)
+local function runFishChaosMinigame(mg, allText)
 local isChaos = string.find(allText, "FISH CHAOS", 1, true) ~= nil
 or string.find(allText, "ความโกลาหลของปลา", 1, true) ~= nil
 or string.find(allText, "GOLDEN +30", 1, true) ~= nil
@@ -469,14 +400,14 @@ end
 end
 end
 
-local laneCount = 0
+local foundLanes = 0
 for idx = 1, 5 do
 if laneCenters[idx] then
-laneCount += 1
+foundLanes += 1
 end
 end
 
-if laneCount < 3 and #areas > 0 then
+if foundLanes < 3 and #areas > 0 then
 local area = areas[1]
 local aPos = area.AbsolutePosition
 local aSz = area.AbsoluteSize
@@ -500,15 +431,15 @@ local playBotY = (laneBottomY or (aPos.Y + aSz.Y * 0.85)) - 4
 
 for _, obj in ipairs(area:GetDescendants()) do
 if obj:IsA("GuiObject") and obj.Visible then
-local nLower = string.lower(obj.Name)
-local isBootName = string.find(nLower, "boot", 1, true)
-or string.find(nLower, "shoe", 1, true)
-or string.find(nLower, "รองเท้า", 1, true)
-or string.find(nLower, "บูต", 1, true)
-local isUiChrome = string.find(nLower, "lane", 1, true)
-or string.find(nLower, "slot", 1, true)
-or string.find(nLower, "bg", 1, true)
-or string.find(nLower, "pond", 1, true)
+local nLow = string.lower(obj.Name)
+local isBootName = string.find(nLow, "boot", 1, true)
+or string.find(nLow, "shoe", 1, true)
+or string.find(nLow, "รองเท้า", 1, true)
+or string.find(nLow, "บูต", 1, true)
+local isUiChrome = string.find(nLow, "lane", 1, true)
+or string.find(nLow, "slot", 1, true)
+or string.find(nLow, "bg", 1, true)
+or string.find(nLow, "pond", 1, true)
 
 local sz = obj.AbsoluteSize
 if not isBootName and not isUiChrome and sz.X >= 14 and sz.X <= 180 and sz.Y >= 14 and sz.Y <= 180 then
@@ -518,10 +449,8 @@ local cy = pos.Y + (sz.Y * 0.5)
 
 if cy >= playTopY and cy <= playBotY then
 local col = obj.BackgroundColor3
-if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
-if obj.ImageTransparency < 0.85 then
+if (obj:IsA("ImageLabel") or obj:IsA("ImageButton")) and obj.ImageTransparency < 0.85 then
 col = obj.ImageColor3
-end
 end
 
 local isDarkBrownBoot = (col.R > 0.42 and col.G < 0.34 and col.B < 0.18 and col.R > col.G * 1.45)
@@ -562,18 +491,18 @@ lastActionTime = tick()
 lastChaosLane = bestLane
 lastChaosLaneTime = tick()
 if laneButtons[bestLane] then
-instantClickMiniGame(laneButtons[bestLane])
+fireGuiButton(laneButtons[bestLane])
 elseif bestTarget then
-instantClickMiniGame(bestTarget)
+fireGuiButton(bestTarget)
 end
-instantPressKey(laneKeys[bestLane])
+tapKey(laneKeys[bestLane])
 end
 
 return true
 end
 
--- [3] Bait Memory / ความจำเหยื่อ
-local function tryPlayMemoryBaitGame(mg, allText)
+-- [GAME 3] BAIT MEMORY / ความจำเหยื่อ (จำคิว Bait1-Bait4 แล้วกดตามเมื่อถึงตาคุณ)
+local function runBaitMemoryMinigame(mg, allText)
 local areas = getActiveMiniGameAreas(mg)
 local choices = {}
 local orderNames = { "WORM", "SHRIMP", "CRICKET", "MINNOW" }
@@ -599,11 +528,11 @@ break
 end
 end
 
-local isMemoryMode = (next(choices) ~= nil)
+local isMemory = (next(choices) ~= nil)
 or string.find(allText, "BAIT MEMORY", 1, true) ~= nil
 or string.find(allText, "ความจำเหยื่อ", 1, true) ~= nil
 
-if not isMemoryMode then
+if not isMemory then
 lastMemTurnState = false
 return false
 end
@@ -635,8 +564,7 @@ end
 
 if not highlighted then
 local bg = c.BackgroundColor3
-local brightness = (bg.R + bg.G + bg.B) / 3
-if brightness > 0.85 or c.BackgroundTransparency < 0.05 then
+if ((bg.R + bg.G + bg.B) / 3) > 0.85 or c.BackgroundTransparency < 0.05 then
 highlighted = true
 end
 end
@@ -686,6 +614,7 @@ if not yourTurn then
 if litIdx and litIdx ~= lastHighlightedKey then
 lastHighlightedKey = litIdx
 table.insert(sequenceQueue, litIdx)
+print("[BaitMemory] จำคิว:", litIdx, "(" .. orderNames[litIdx] .. ") | รวม:", #sequenceQueue)
 elseif not litIdx then
 lastHighlightedKey = nil
 end
@@ -701,8 +630,9 @@ local nextIdx = table.remove(sequenceQueue, 1)
 local targetItem = choices[nextIdx]
 if targetItem and targetItem.target then
 lastActionTime = tick()
-instantClickMiniGame(targetItem.target)
-instantPressKey(memKeys[nextIdx])
+print("[BaitMemory] กดตามคิว:", nextIdx, "(" .. orderNames[nextIdx] .. ")")
+fireGuiButton(targetItem.target)
+tapKey(memKeys[nextIdx])
 end
 end
 
@@ -720,27 +650,21 @@ lastMemTurnState = false
 return
 end
 
-local allText = getHeaderTitle(mg)
+local allText = getCombinedVisibleText(mg)
 
-if not isInActiveGameplay(mg, allText) then
-if tryClickPlayInMiniGame(mg) then
-return
-end
-end
-
-if tryPlayReelGame(mg, allText) then
+if runReelMinigame(mg, allText) then
 return
 end
 
-if tryPlayFishChaosGame(mg, allText) then
+if runFishChaosMinigame(mg, allText) then
 return
 end
 
-if tryPlayMemoryBaitGame(mg, allText) then
+if runBaitMemoryMinigame(mg, allText) then
 return
 end
 
-tryClickPlayInMiniGame(mg)
+tryClickStartButton(mg)
 end
 
 function GameModule.init(Config, Utils)
@@ -776,7 +700,7 @@ task.wait(0.1)
 end
 end)
 
-print("[Net a Fish] โหลดระบบมินิเกมครบทั้ง 3 เกม (All-in-One Instant Mode) เรียบร้อย")
+print("[Net a Fish] โหลดระบบมินิเกมครบทั้ง 3 เกมเรียบร้อย")
 end
 
 return GameModule
