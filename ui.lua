@@ -370,10 +370,7 @@ title.Text = (hubTitle or "TER HUB") .. "  •  NET A FISH"
 title.Font = Enum.Font.GothamBlack
 title.TextSize = 14
 title.TextColor3 = Color3.new(1, 1, 1)
-	local TitleWhiteRgbGrad = Instance.new("UIGradient")
-	TitleWhiteRgbGrad.Name = "TitleWhiteRgbGrad"
-	TitleWhiteRgbGrad.Parent = title
-title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 5
 title.Parent = top
 
@@ -953,22 +950,28 @@ end
 return
 end
 clk += dt
+-- ชื่อฮับและชื่อแมพ: สี RGB วิ่งล้วน (ไม่เอาขาวสลับแดง)
+local hPure = (clk * 0.42) % 1
+local p1Col = Color3.fromHSV(hPure, 1, 1)
+local p2Col = Color3.fromHSV((hPure + 0.20) % 1, 1, 1)
+local p3Col = Color3.fromHSV((hPure + 0.40) % 1, 1, 1)
+local p4Col = Color3.fromHSV((hPure + 0.60) % 1, 1, 1)
+local p5Col = Color3.fromHSV((hPure + 0.80) % 1, 1, 1)
+if rgb and rgb.Parent then
+rgb.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0.00, p1Col),
+ColorSequenceKeypoint.new(0.25, p2Col),
+ColorSequenceKeypoint.new(0.50, p3Col),
+ColorSequenceKeypoint.new(0.75, p4Col),
+ColorSequenceKeypoint.new(1.00, p5Col),
+})
+end
 rot = (rot + dt * 110) % 360
 if mGrad then
 mGrad.Rotation = rot
 end
 
--- หัวข้อชื่อแมพ/ฮับ: สีขาว สลับ สี RGB วิ่งต่อเนื่อง
-local h0 = (clk * 0.55) % 1
-local rgbA = Color3.fromHSV(h0, 1, 1)
-local rgbB = Color3.fromHSV((h0 + 0.16) % 1, 1, 1)
-local rgbC = Color3.fromHSV((h0 + 0.33) % 1, 1, 1)
-local rgbD = Color3.fromHSV((h0 + 0.50) % 1, 1, 1)
-local rgbE = Color3.fromHSV((h0 + 0.67) % 1, 1, 1)
-if TitleWhiteRgbGrad and TitleWhiteRgbGrad.Parent then
-TitleWhiteRgbGrad.Rotation = 0
-TitleWhiteRgbGrad.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0.00, Color3.new(1, 1, 1)),
+,
 ColorSequenceKeypoint.new(0.14, rgbA),
 ColorSequenceKeypoint.new(0.28, Color3.new(1, 1, 1)),
 ColorSequenceKeypoint.new(0.42, rgbB),
