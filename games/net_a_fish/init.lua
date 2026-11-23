@@ -777,6 +777,69 @@ end
 tryClickStartButton(mg)
 end
 
+local lastCollectMoneyTime = 0
+
+local function stepAutoCollectMoney(cfg)
+if not (cfg and cfg.AutoCollectMoney) then
+return
+end
+local interval = tonumber(cfg.CollectIntervalSec) or 5
+local cooldown = math.max(1.0, math.min(interval, 15))
+if tick() - lastCollectMoneyTime < cooldown then
+return
+end
+lastCollectMoneyTime = tick()
+
+local root = getRootPart()
+if not root then
+return
+end
+
+-- สัมผัสตัวเก็บเงิน/แท่นเก็บเงินที่อยู่ใกล้ตัวละคร
+for _, obj in ipairs(workspace:GetDescendants()) do
+if obj:IsA("BasePart") then
+local nLow = string.lower(obj.Name)
+local isMoneyOrCollect = string.find(nLow, "money", 1, true)
+or string.find(nLow, "cash", 1, true)
+or string.find(nLow, "coin", 1, true)
+or string.find(nLow, "collect", 1, true)
+or string.find(nLow, "claim", 1, true)
+if isMoneyOrCollect and (obj.Position - root.Position).Magnitude <= 35 then
+pcall(function()
+if firetouchinterest then
+firetouchinterest(root, obj, 0)
+task.wait(0.03)
+firetouchinterest(root, obj, 1)
+end
+end)
+end
+end
+end
+
+-- เรียก Remote ที่เกี่ยวกับการเก็บเงิน/เคลม ถ้ามีใน ReplicatedStorage
+pcall(function()
+for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
+if rem:IsA("RemoteEvent") then
+local rLow = string.lower(rem.Name)
+if string.find(rLow, "collect", 1, true) or string.find(rLow, "claim", 1, true) or string.find(rLow, "money", 1, true) then
+pcall(function()
+rem:FireServer()
+end)
+end
+end
+end
+end)
+end
+
+local function hasFishingToggleActive(cfg)
+if not cfg then
+return false
+end
+return (cfg.AutoFishCollect == true)
+or (cfg.AutoCatch == true)
+or (cfg.AutoReelFull == true)
+end
+
 function GameModule.init(Config, Utils)
 if started then
 return
